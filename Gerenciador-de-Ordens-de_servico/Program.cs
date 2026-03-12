@@ -12,6 +12,7 @@ namespace Gerenciador_de_Ordens_de_servico
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
             Application.Run(new Form1());
+
         }
     }
 }

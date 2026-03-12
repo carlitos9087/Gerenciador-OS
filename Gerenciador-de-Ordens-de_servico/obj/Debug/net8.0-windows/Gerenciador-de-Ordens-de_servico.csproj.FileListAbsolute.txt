@@ -15,3 +15,6 @@ C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciado
 C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\Gerenciador-de-Ordens-de_servico.genruntimeconfig.cache
 C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\ref\Gerenciador-de-Ordens-de_servico.dll
 C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\Gerenciador_de_Ordens_de_servico.Form2.resources
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\Gerenciador-de-Ordens-de_servico.sourcelink.json
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\Gerenciador_de_Ordens_de_servico.UcListagemOSC.resources
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\obj\Debug\net8.0-windows\Gerenciador_de_Ordens_de_servico.Form3.resources

@@ -1,7 +1,18 @@
-﻿namespace Gerenciador_de_Ordens_de_servico
+﻿using System;
+using System.Drawing;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Windows.Forms;
+
+namespace Gerenciador_de_Ordens_de_servico
 {
     public partial class Form1 : Form
     {
+        // O mesmo HttpClient do Form3 — estático para ser reutilizado
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private const string URL_BASE = "http://localhost:5184";
+
         public Form1()
         {
             InitializeComponent();
@@ -9,78 +20,122 @@
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Configurações da JANELA PRINCIPAL
-            this.Text = "Login - Ordem de Serviço Crítico";  // Título da janela
-            this.Size = new Size(1000, 600);                   // Largura x Altura
-            this.StartPosition = FormStartPosition.CenterScreen; // Abre no centro
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;  // Não pode redimensionar
-            this.MaximizeBox = false;  // Desabilita botão de maximizar
+            this.Text = "Login - Gerenciador de OS";
+            this.Size = new Size(1100, 700);
+            this.MinimumSize = new Size(1000, 600);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+
+            // Mascara a senha com asteriscos
             textBox2.PasswordChar = '*';
 
-            CriarTelaLogin();
+            // Permite pressionar Enter no campo de senha para logar
+            textBox2.KeyDown += (s, ev) =>
+            {
+                if (ev.KeyCode == Keys.Enter)
+                    FazerLogin();
+            };
+
+            // Quando o Form1 volta a aparecer (usuário saiu do Form3),
+            // limpa os campos e reseta o botão para nova sessão
+            this.VisibleChanged += (s, ev) =>
+            {
+                if (this.Visible)
+                {
+                    textBox1.Clear();
+                    textBox2.Clear();
+                    textBox1.Focus();
+                    button1.Enabled = true;
+                    button1.Text = "Entrar";
+                }
+            };
         }
 
-        private void CriarTelaLogin()
+        // Evento do botão — agora chama FazerLogin()
+        // "async void" é obrigatório para eventos que usam await
+        private async void button1_Click_1(object sender, EventArgs e)
         {
-
-
+            await FazerLogin();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        // ══════════════════════════════════════════════════════════════
+        // LÓGICA DE LOGIN
+        // Faz POST em /auth/login com email e senha
+        // Se a API retornar 200, abre o Form3 e guarda o usuário logado
+        // ══════════════════════════════════════════════════════════════
+        private async System.Threading.Tasks.Task FazerLogin()
         {
-            // 1. Pega o que digitou
-            string email = textBox1.Text;
+            string email = textBox1.Text.Trim();
             string senha = textBox2.Text;
 
-            // 2. Verifica se digitou algo (validação simples)
-            if (email == "" || senha == "")
+            // ── Validação básica antes de chamar a API ──────────────
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
             {
-                MessageBox.Show("Digite email e senha!");
-                return;  // Para aqui se estiver vazio
+                MessageBox.Show("Digite o e-mail e a senha.", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
-            // 3. Verifica login (só um exemplo!)
-            if (textBox1.Text == "admin" && textBox2.Text == "123")
-            {
-                // 4. ABRE A PRÓXIMA TELA! 🎉
-                Form2 telaPrincipal = new Form2();
-                telaPrincipal.Show();  // Mostra a nova tela
+            // ── Monta o payload igual ao LoginRequest do backend ────
+            // { "email": "...", "senha": "..." }
+            var payload = new { email, senha };
+            string json = JsonSerializer.Serialize(payload);
+            var conteudo = new StringContent(json, Encoding.UTF8, "application/json");
 
-                this.Hide();  // Esconde a tela de login (opcional)
+            // Desabilita o botão durante a requisição
+            button1.Enabled = false;
+            button1.Text = "Entrando...";
+
+            try
+            {
+                // POST /auth/login — aguarda sem travar a tela
+                var resposta = await _httpClient.PostAsync($"{URL_BASE}/auth/login", conteudo);
+
+                if (resposta.IsSuccessStatusCode)
+                {
+                    // Deserializa o UsuarioResponse que a API retornou
+                    string corpoJson = await resposta.Content.ReadAsStringAsync();
+                    var opcoes = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var usuarioLogado = JsonSerializer.Deserialize<UsuarioResponse>(corpoJson, opcoes);
+
+                    // Abre a tela principal passando o usuário logado
+                    // Assim o Form3 sabe quem está logado (para usar o usuarioLogadoId)
+                    var telaPrincipal = new Form3(usuarioLogado);
+                    telaPrincipal.Show();
+                    this.Hide();
+                }
+                else if (resposta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // 401 = credenciais erradas
+                    MessageBox.Show("E-mail ou senha incorretos.", "Acesso negado",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    // Outro erro da API (500, 404, etc.)
+                    string erro = await resposta.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Erro da API: {(int)resposta.StatusCode}\n\n{erro}",
+                        "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-            else
+            catch (HttpRequestException ex)
             {
-                MessageBox.Show("Email ou senha errados!");
+                // API offline ou URL errada
+                MessageBox.Show(
+                    $"Não foi possível conectar à API.\nVerifique se está rodando em {URL_BASE}\n\nDetalhe: {ex.Message}",
+                    "Erro de Conexão", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-
-
-        private void button1_Click_1(object sender, EventArgs e)
-        {
-            // 1. Pega o que digitou
-            string email = textBox1.Text;
-            string senha = textBox2.Text;
-
-            // 2. Verifica se digitou algo (validação simples)
-            if (email == "" || senha == "")
+            catch (Exception ex)
             {
-                MessageBox.Show("Digite email e senha!");
-                return;  // Para aqui se estiver vazio
+                MessageBox.Show($"Erro inesperado:\n{ex.Message}",
+                    "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            // 3. Verifica login (só um exemplo!)
-            if (textBox1.Text == "admin" && textBox2.Text == "123")
+            finally
             {
-                // 4. ABRE A PRÓXIMA TELA! 🎉
-                Form2 telaPrincipal = new Form2();
-                telaPrincipal.Show();  // Mostra a nova tela
-
-                this.Hide();  // Esconde a tela de login (opcional)
-            }
-            else
-            {
-                MessageBox.Show("Email ou senha errados!");
+                // Sempre reabilita o botão, mesmo se der erro
+                button1.Enabled = true;
+                button1.Text = "Entrar";
             }
         }
     }

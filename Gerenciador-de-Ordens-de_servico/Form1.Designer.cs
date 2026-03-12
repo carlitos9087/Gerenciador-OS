@@ -36,6 +36,8 @@
             textBox1 = new TextBox();
             button1 = new Button();
             panel2 = new Panel();
+            label6 = new Label();
+            label5 = new Label();
             textBox2 = new TextBox();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
@@ -49,66 +51,76 @@
             panel1.Controls.Add(label3);
             panel1.Controls.Add(label2);
             panel1.Controls.Add(label1);
+            panel1.Dock = DockStyle.Left;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(320, 676);
+            panel1.Padding = new Padding(20, 0, 20, 0);
+            panel1.RightToLeft = RightToLeft.No;
+            panel1.Size = new Size(395, 686);
             panel1.TabIndex = 0;
             // 
             // label4
             // 
+            label4.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             label4.AutoSize = true;
             label4.ForeColor = SystemColors.AppWorkspace;
-            label4.Location = new Point(29, 251);
-            label4.MaximumSize = new Size(280, 0);
+            label4.Location = new Point(72, 295);
+            label4.MaximumSize = new Size(300, 0);
             label4.Name = "label4";
-            label4.Size = new Size(265, 45);
+            label4.Size = new Size(300, 45);
             label4.TabIndex = 4;
-            label4.Text = "Plataforma digital para gestão, aprovação e\\nrastreamento de Ordens de Serviço Crítico — 100% sem\\npapel.";
+            label4.Text = "Plataforma digital para gestão, aprovação e rastreamento de Ordens de Serviço Crítico — 100% sem papel.";
             // 
             // label3
             // 
+            label3.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             label3.AutoSize = true;
+            label3.Font = new Font("Segoe UI", 20F);
             label3.ForeColor = Color.DarkGoldenrod;
-            label3.Location = new Point(52, 178);
+            label3.Location = new Point(72, 197);
             label3.Name = "label3";
-            label3.Size = new Size(42, 15);
+            label3.Size = new Size(94, 37);
             label3.TabIndex = 3;
             label3.Text = "Crítico";
             // 
             // label2
             // 
+            label2.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             label2.AutoSize = true;
+            label2.Font = new Font("Segoe UI", 20F);
             label2.ForeColor = Color.White;
-            label2.Location = new Point(29, 131);
+            label2.Location = new Point(72, 150);
             label2.Name = "label2";
-            label2.Size = new Size(101, 15);
+            label2.Size = new Size(231, 37);
             label2.TabIndex = 2;
-            label2.Text = "Ordem de Serviço";
+            label2.Text = "Ordens de Serviço";
             // 
             // label1
             // 
+            label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             label1.AutoSize = true;
             label1.ForeColor = Color.Gray;
-            label1.Location = new Point(29, 61);
+            label1.Location = new Point(72, 80);
             label1.Name = "label1";
-            label1.Size = new Size(251, 15);
+            label1.Size = new Size(164, 15);
             label1.TabIndex = 1;
-            label1.Text = "DOCUMENTO CONTROLADO • USO INTERNO";
+            label1.Text = "DOCUMENTO CONTROLADO";
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(27, 55);
+            textBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            textBox1.Location = new Point(27, 63);
             textBox1.Name = "textBox1";
-            textBox1.Size = new Size(247, 23);
+            textBox1.Size = new Size(335, 23);
             textBox1.TabIndex = 2;
-            textBox1.Text = "E-mail";
             // 
             // button1
             // 
+            button1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             button1.ForeColor = Color.Black;
-            button1.Location = new Point(105, 249);
+            button1.Location = new Point(105, 257);
             button1.Name = "button1";
-            button1.Size = new Size(99, 23);
+            button1.Size = new Size(187, 32);
             button1.TabIndex = 3;
             button1.Text = "Logar";
             button1.UseVisualStyleBackColor = true;
@@ -116,29 +128,60 @@
             // 
             // panel2
             // 
+            panel2.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             panel2.BackColor = Color.White;
+            panel2.Controls.Add(label6);
+            panel2.Controls.Add(label5);
             panel2.Controls.Add(textBox2);
             panel2.Controls.Add(textBox1);
             panel2.Controls.Add(button1);
             panel2.ForeColor = SystemColors.ControlLightLight;
-            panel2.Location = new Point(377, 131);
+            panel2.Location = new Point(564, 150);
+            panel2.Margin = new Padding(300, 3, 3, 3);
+            panel2.MaximumSize = new Size(400, 400);
+            panel2.MinimumSize = new Size(300, 300);
             panel2.Name = "panel2";
-            panel2.Size = new Size(308, 333);
+            panel2.Size = new Size(396, 331);
             panel2.TabIndex = 5;
+            // 
+            // label6
+            // 
+            label6.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            label6.AutoSize = true;
+            label6.BackColor = Color.Transparent;
+            label6.ForeColor = SystemColors.ActiveCaptionText;
+            label6.Location = new Point(27, 119);
+            label6.Name = "label6";
+            label6.Size = new Size(39, 15);
+            label6.TabIndex = 5;
+            label6.Text = "Senha";
+            // 
+            // label5
+            // 
+            label5.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            label5.AutoSize = true;
+            label5.BackColor = Color.Transparent;
+            label5.ForeColor = SystemColors.ActiveCaptionText;
+            label5.Location = new Point(27, 35);
+            label5.Name = "label5";
+            label5.Size = new Size(41, 15);
+            label5.TabIndex = 5;
+            label5.Text = "E-mail";
             // 
             // textBox2
             // 
-            textBox2.Location = new Point(27, 145);
+            textBox2.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            textBox2.Location = new Point(27, 153);
             textBox2.Name = "textBox2";
-            textBox2.Size = new Size(247, 23);
+            textBox2.Size = new Size(335, 23);
             textBox2.TabIndex = 4;
-            textBox2.Text = "Senha";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(765, 662);
+            AutoSize = true;
+            ClientSize = new Size(1107, 686);
             Controls.Add(panel2);
             Controls.Add(panel1);
             Name = "Form1";
@@ -163,5 +206,7 @@
         private Label label4;
         private Label label3;
         private TextBox textBox2;
+        private Label label5;
+        private Label label6;
     }
 }
