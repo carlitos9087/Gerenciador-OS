@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Forms;
 
 namespace Gerenciador_de_Ordens_de_servico
@@ -11,26 +12,24 @@ namespace Gerenciador_de_Ordens_de_servico
     public partial class Form3 : Form
     {
         // ══════════════════════════════════════════════
-        // CORES DO TEMA — mude aqui para mudar o visual
+        // CORES DO TEMA
         // ══════════════════════════════════════════════
         readonly Color corPrimaria = Color.FromArgb(30, 80, 160);
         readonly Color corBotaoAtivo = Color.FromArgb(30, 80, 160);
         readonly Color corTextoAtivo = Color.White;
         readonly Color corTextoNormal = Color.FromArgb(60, 60, 80);
 
-        Button btnAtivo;
+        Button? btnAtivo;
 
-        // HttpClient deve ser estático e reutilizado — nunca crie dentro de métodos
+        // HttpClient estático — reutilizado em toda a aplicação
         private static readonly HttpClient _httpClient = new HttpClient();
 
         // URL base da API — mude aqui se o endereço mudar
         private const string URL_BASE = "http://localhost:5184";
 
-        // Usuário que fez login — recebido do Form1
-        // Usado para preencher o usuarioLogadoId nos POSTs
+        // Usuário que fez login (recebido do Form1)
         private UsuarioResponse _usuarioLogado;
 
-        // Construtor recebe o usuário logado vindo do Form1
         public Form3(UsuarioResponse usuarioLogado)
         {
             InitializeComponent();
@@ -38,14 +37,14 @@ namespace Gerenciador_de_Ordens_de_servico
         }
 
         // ══════════════════════════════════════════════
-        // LOAD: executado quando o form abre
+        // LOAD
         // ══════════════════════════════════════════════
         private void Form3_Load(object sender, EventArgs e)
         {
             ConfigurarCabecalho();
             ConfigurarBotoes();
-
-            MostrarDashboard();
+            // _ = descarta o Task retornado — suprimi o warning CS4014 corretamente
+            _ = MostrarDashboard();
             DestaqueBotao(btnDashboard);
         }
 
@@ -65,7 +64,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(16, 16)
             });
 
-            // Mostra o nome e perfil do usuário logado no canto direito
+            // Nome e perfil do usuário logado
             panelCabecalho.Controls.Add(new Label
             {
                 Text = $"👤  {_usuarioLogado.Nome}  |  {_usuarioLogado.Perfil}",
@@ -76,7 +75,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(panelCabecalho.Width - 380, 20)
             });
 
-            // Botão de sair — volta para o Form1 (tela de login)
+            // Botão Sair
             var btnSair = new Button
             {
                 Text = "⬅  Sair",
@@ -92,7 +91,6 @@ namespace Gerenciador_de_Ordens_de_servico
                 FlatAppearance = { BorderSize = 0 }
             };
 
-            // Ao clicar: confirma, fecha o Form3 e mostra o Form1 de volta
             btnSair.Click += (s, e) =>
             {
                 var confirmar = MessageBox.Show(
@@ -103,15 +101,10 @@ namespace Gerenciador_de_Ordens_de_servico
 
                 if (confirmar == DialogResult.Yes)
                 {
-                    // Mostra o Form1 (login) que estava oculto
-                    // e fecha o Form3 atual
+                    // Mostra o Form1 que estava oculto e fecha este
                     foreach (Form f in Application.OpenForms)
                     {
-                        if (f is Form1)
-                        {
-                            f.Show();
-                            break;
-                        }
+                        if (f is Form1) { f.Show(); break; }
                     }
                     this.Close();
                 }
@@ -128,12 +121,17 @@ namespace Gerenciador_de_Ordens_de_servico
             EstilizarBotao(btnDashboard, "🏠  Dashboard");
             EstilizarBotao(btnCriarRelatorio, "➕  Criar OS");
             EstilizarBotao(btnAssinar, "✅  Assinar OS");
+            EstilizarBotao(btnAdmin, "⚙️  Administração");
 
-            // MostrarDashboard e MostrarAssinar são async Task,
-            // por isso usamos async nos lambdas dos eventos
+            // btnAdmin só aparece para Administrador
+            bool ehAdmin = (_usuarioLogado.Perfil ?? "").Equals("Administrador", StringComparison.OrdinalIgnoreCase)
+                        || (_usuarioLogado.Perfil ?? "").Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            btnAdmin.Visible = ehAdmin;
+
             btnDashboard.Click += async (s, e) => { await MostrarDashboard(); DestaqueBotao(btnDashboard); };
             btnCriarRelatorio.Click += (s, e) => { MostrarCriarOS(); DestaqueBotao(btnCriarRelatorio); };
             btnAssinar.Click += async (s, e) => { await MostrarAssinar(); DestaqueBotao(btnAssinar); };
+            btnAdmin.Click += async (s, e) => { await MostrarAdmin(); DestaqueBotao(btnAdmin); };
         }
 
         private void EstilizarBotao(Button btn, string texto)
@@ -151,8 +149,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
         private void DestaqueBotao(Button botaoClicado)
         {
-            Button[] todos = { btnDashboard, btnCriarRelatorio, btnAssinar };
-
+            Button[] todos = { btnDashboard, btnCriarRelatorio, btnAssinar, btnAdmin };
             foreach (var btn in todos)
             {
                 if (btn == botaoClicado)
@@ -166,7 +163,6 @@ namespace Gerenciador_de_Ordens_de_servico
                     btn.ForeColor = corTextoNormal;
                 }
             }
-
             btnAtivo = botaoClicado;
         }
 
@@ -177,19 +173,17 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             foreach (Control c in panelConteudo.Controls)
                 c.Dispose();
-
             panelConteudo.Controls.Clear();
         }
 
         // ══════════════════════════════════════════════════════════════
         // TELA 1 — DASHBOARD
-        // Faz GET em /osc, deserializa o JSON e exibe na tabela
+        // GET /osc → deserializa → tabela com paginação
         // ══════════════════════════════════════════════════════════════
         const int ITENS_POR_PAGINA = 5;
         int paginaAtual = 1;
-        List<OscResponse> todasAsOscs;
+        List<OscResponse> todasAsOscs = new List<OscResponse>();
 
-        // "async Task" em vez de "async void" porque chamamos com await nos botões
         private async System.Threading.Tasks.Task MostrarDashboard()
         {
             LimparConteudo();
@@ -204,7 +198,6 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(0, 0)
             });
 
-            // Mensagem enquanto aguarda a resposta da API
             var lblCarregando = new Label
             {
                 Text = "⏳  Buscando dados da API...",
@@ -215,10 +208,8 @@ namespace Gerenciador_de_Ordens_de_servico
             };
             panelConteudo.Controls.Add(lblCarregando);
 
-            // ── GET /osc ──────────────────────────────────────────────────
             try
             {
-                // Faz a requisição e aguarda sem travar a janela
                 var resposta = await _httpClient.GetAsync($"{URL_BASE}/osc");
 
                 if (!resposta.IsSuccessStatusCode)
@@ -229,17 +220,12 @@ namespace Gerenciador_de_Ordens_de_servico
                     return;
                 }
 
-                // Lê o corpo da resposta como string JSON
                 string json = await resposta.Content.ReadAsStringAsync();
-
-                // Deserializa: converte o JSON em List<OscResponse>
-                // PropertyNameCaseInsensitive ignora diferença entre "Status" e "status"
                 var opcoes = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                todasAsOscs = JsonSerializer.Deserialize<List<OscResponse>>(json, opcoes);
+                todasAsOscs = JsonSerializer.Deserialize<List<OscResponse>>(json, opcoes) ?? new List<OscResponse>();
             }
             catch (HttpRequestException ex)
             {
-                // API offline, URL errada, sem rede
                 lblCarregando.Text = $"❌  Sem conexão com a API: {ex.Message}";
                 lblCarregando.ForeColor = Color.Red;
                 return;
@@ -251,14 +237,12 @@ namespace Gerenciador_de_Ordens_de_servico
                 return;
             }
 
-            // Remove o "carregando" e monta a tabela
             panelConteudo.Controls.Remove(lblCarregando);
             lblCarregando.Dispose();
 
-            var grid = CriarGrid();
+            var grid = CriarGridOsc();
             grid.Location = new Point(0, 52);
-            grid.Anchor = AnchorStyles.Top | AnchorStyles.Left |
-                            AnchorStyles.Right | AnchorStyles.Bottom;
+            grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
             grid.Width = panelConteudo.Width - 48;
             grid.Height = panelConteudo.Height - 140;
             panelConteudo.Controls.Add(grid);
@@ -269,8 +253,7 @@ namespace Gerenciador_de_Ordens_de_servico
             CarregarPagina(grid, paginaAtual);
         }
 
-        // Cria e configura o DataGridView
-        private DataGridView CriarGrid()
+        private DataGridView CriarGridOsc()
         {
             var grid = new DataGridView
             {
@@ -293,7 +276,6 @@ namespace Gerenciador_de_Ordens_de_servico
             grid.EnableHeadersVisualStyles = false;
             grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 255);
 
-            // Ajuste os nomes das colunas conforme o JSON da sua API
             AdicionarColuna(grid, "ID", "id", 70, DataGridViewAutoSizeColumnMode.None);
             AdicionarColuna(grid, "Descrição", "descricao", 200, DataGridViewAutoSizeColumnMode.Fill);
             AdicionarColuna(grid, "Equipamento", "equipamento", 150, DataGridViewAutoSizeColumnMode.AllCells);
@@ -316,12 +298,10 @@ namespace Gerenciador_de_Ordens_de_servico
             });
         }
 
-        // Preenche a grid com os itens da página solicitada
         private void CarregarPagina(DataGridView grid, int pagina)
         {
             grid.Rows.Clear();
 
-            // Calcula o intervalo: página 2, 5 por página → índices 5 a 9
             int inicio = (pagina - 1) * ITENS_POR_PAGINA;
             int fim = Math.Min(inicio + ITENS_POR_PAGINA, todasAsOscs.Count);
 
@@ -329,20 +309,13 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 var osc = todasAsOscs[i];
 
-                // A data pode vir como "2024-06-01T00:00:00" — pegamos só os 10 primeiros chars
                 string dataFormatada = !string.IsNullOrEmpty(osc.dataEmissao)
                     ? osc.dataEmissao.Substring(0, Math.Min(10, osc.dataEmissao.Length))
                     : "—";
 
-                int linha = grid.Rows.Add(
-                    osc.id,
-                    osc.descricao,
-                    osc.equipamento,
-                    dataFormatada,
-                    osc.status ?? "Pendente"
-                );
+                int linha = grid.Rows.Add(osc.id, osc.descricao, osc.equipamento,
+                                          dataFormatada, osc.status ?? "Pendente");
 
-                // Colorir a célula de status
                 var celula = grid.Rows[linha].Cells["status"];
                 switch ((osc.status ?? "").ToLower())
                 {
@@ -366,18 +339,12 @@ namespace Gerenciador_de_Ordens_de_servico
             }
         }
 
-        // Cria o rodapé com botões de paginação
         private Panel CriarPaginacao(DataGridView grid)
         {
             int totalPaginas = (int)Math.Ceiling((double)todasAsOscs.Count / ITENS_POR_PAGINA);
             if (totalPaginas < 1) totalPaginas = 1;
 
-            var painelPag = new Panel
-            {
-                Height = 44,
-                Dock = DockStyle.Bottom,
-                BackColor = Color.White
-            };
+            var painelPag = new Panel { Height = 44, Dock = DockStyle.Bottom, BackColor = Color.White };
 
             var btnAnterior = CriarBotaoPagina("◀", false);
             btnAnterior.Location = new Point(0, 6);
@@ -394,7 +361,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
             for (int p = 1; p <= totalPaginas; p++)
             {
-                int numPagina = p; // captura local — sem isso todos os lambdas usariam o valor final de p
+                int numPagina = p;
                 var btn = CriarBotaoPagina(p.ToString(), p == paginaAtual);
                 btn.Name = "pag_" + p;
                 btn.Location = new Point(36 * p, 6);
@@ -430,11 +397,9 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 var btn = painel.Controls["pag_" + p] as Button;
                 if (btn == null) continue;
-
                 btn.BackColor = (p == paginaAtual) ? corPrimaria : Color.White;
                 btn.ForeColor = (p == paginaAtual) ? Color.White : Color.FromArgb(70, 70, 100);
-                btn.Font = new Font("Segoe UI", 9,
-                                    p == paginaAtual ? FontStyle.Bold : FontStyle.Regular);
+                btn.Font = new Font("Segoe UI", 9, p == paginaAtual ? FontStyle.Bold : FontStyle.Regular);
             }
         }
 
@@ -456,22 +421,16 @@ namespace Gerenciador_de_Ordens_de_servico
 
         // ══════════════════════════════════════════════════════════════
         // TELA 2 — CRIAR OS
-        // Faz GET dos gerentes por setor e exibe ComboBoxes para seleção
-        // Depois faz POST em /osc com os IDs escolhidos
+        // GET gerentes por setor em paralelo → ComboBoxes → POST /osc
         // ══════════════════════════════════════════════════════════════
 
-        // Método auxiliar: busca gerentes de um setor específico na API
-        // Retorna lista vazia se der erro (tratado na UI)
-        // Setor é passado como string igual ao enum do backend: "Qualidade", "Engenharia", "Producao"
+        // Busca gerentes de um setor na API
+        // OBS: rota sem /auth porque [HttpGet("/usuarios/gerentes/{setor}")] é absoluta
         private async System.Threading.Tasks.Task<List<UsuarioResponse>> BuscarGerentesPorSetor(string setor)
         {
             try
             {
-                // GET /usuarios/gerentes/{setor}
-                // OBS: a rota NÃO tem /auth porque o backend usa [HttpGet("/usuarios/gerentes/{setor}")]
-                // com barra no início — isso sobrescreve o [Route("/auth")] do controller
                 var resposta = await _httpClient.GetAsync($"{URL_BASE}/usuarios/gerentes/{setor}");
-
                 if (!resposta.IsSuccessStatusCode)
                     return new List<UsuarioResponse>();
 
@@ -482,14 +441,10 @@ namespace Gerenciador_de_Ordens_de_servico
             }
             catch
             {
-                // Se a API estiver offline, retorna lista vazia
-                // O erro será exibido pelo estado do ComboBox na tela
                 return new List<UsuarioResponse>();
             }
         }
 
-        // Cria um Label + ComboBox parecido com AdicionarCampo, mas para listas
-        // "itens" é a lista de gerentes; o ComboBox guarda o UsuarioResponse como item
         private ComboBox AdicionarComboBox(string rotulo, ref int y,
                                            List<UsuarioResponse> itens, string msgErro)
         {
@@ -509,37 +464,30 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(0, y),
                 Font = new Font("Segoe UI", 10),
                 BackColor = Color.FromArgb(247, 250, 255),
-                DropDownStyle = ComboBoxStyle.DropDownList,  // impede digitação livre
+                DropDownStyle = ComboBoxStyle.DropDownList,
                 FlatStyle = FlatStyle.Flat
             };
 
             if (itens.Count == 0)
             {
-                // Se não vieram gerentes, exibe mensagem de erro no ComboBox
                 combo.Items.Add(msgErro);
                 combo.SelectedIndex = 0;
                 combo.Enabled = false;
             }
             else
             {
-                // Adiciona cada gerente como item do ComboBox
-                // DisplayMember = qual propriedade mostrar como texto
-                // ValueMember   = qual propriedade usar como valor interno (o ID)
                 combo.DisplayMember = "Nome";
                 combo.ValueMember = "Id";
                 foreach (var u in itens)
                     combo.Items.Add(u);
-
-                combo.SelectedIndex = 0; // seleciona o primeiro por padrão
+                combo.SelectedIndex = 0;
             }
 
             panelConteudo.Controls.Add(combo);
             y += 34 + 18;
-
             return combo;
         }
 
-        // MostrarCriarOS é async porque precisa aguardar os 3 GETs de gerentes
         private async void MostrarCriarOS()
         {
             LimparConteudo();
@@ -553,7 +501,6 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(0, 0)
             });
 
-            // Mensagem enquanto carrega os gerentes da API
             var lblCarregando = new Label
             {
                 Text = "⏳  Carregando gerentes...",
@@ -564,31 +511,25 @@ namespace Gerenciador_de_Ordens_de_servico
             };
             panelConteudo.Controls.Add(lblCarregando);
 
-            // ── Busca os 3 listas de gerentes em paralelo ────────────────
-            // Task.WhenAll dispara os 3 GETs ao mesmo tempo e aguarda todos
-            // terminarem — muito mais rápido do que fazer um por um
+            // Dispara os 3 GETs em paralelo — mais rápido do que sequencial
             var taskQualidade = BuscarGerentesPorSetor("Qualidade");
             var taskEngenharia = BuscarGerentesPorSetor("Engenharia");
             var taskProducao = BuscarGerentesPorSetor("Producao");
 
             await System.Threading.Tasks.Task.WhenAll(taskQualidade, taskEngenharia, taskProducao);
 
-            List<UsuarioResponse> gerentesQualidade = taskQualidade.Result;
-            List<UsuarioResponse> gerentesEngenharia = taskEngenharia.Result;
-            List<UsuarioResponse> gerentesProducao = taskProducao.Result;
+            List<UsuarioResponse> gerentesQualidade = taskQualidade.Result ?? new List<UsuarioResponse>();
+            List<UsuarioResponse> gerentesEngenharia = taskEngenharia.Result ?? new List<UsuarioResponse>();
+            List<UsuarioResponse> gerentesProducao = taskProducao.Result ?? new List<UsuarioResponse>();
 
-            // Remove o "carregando" agora que os dados chegaram
             panelConteudo.Controls.Remove(lblCarregando);
             lblCarregando.Dispose();
 
             int y = 46;
 
-            // Campos de texto normais
             AdicionarCampo("Descrição:", ref y, out TextBox txtDescricao);
             AdicionarCampo("Equipamento:", ref y, out TextBox txtEquipamento);
 
-            // ComboBoxes carregados com os gerentes vindos da API
-            // Se a lista vier vazia, o ComboBox fica desabilitado com mensagem de erro
             var cmbQualidade = AdicionarComboBox("Gerente de Qualidade:", ref y, gerentesQualidade, "❌ Nenhum gerente encontrado");
             var cmbEngenharia = AdicionarComboBox("Gerente de Engenharia:", ref y, gerentesEngenharia, "❌ Nenhum gerente encontrado");
             var cmbProducao = AdicionarComboBox("Gerente de Produção:", ref y, gerentesProducao, "❌ Nenhum gerente encontrado");
@@ -609,17 +550,14 @@ namespace Gerenciador_de_Ordens_de_servico
 
             btnSalvar.Click += async (s, e) =>
             {
-                // ── Validações ────────────────────────────────────
                 if (string.IsNullOrWhiteSpace(txtDescricao.Text))
                 {
-                    MessageBox.Show("Informe a descrição!", "Atenção",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Informe a descrição!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (string.IsNullOrWhiteSpace(txtEquipamento.Text))
                 {
-                    MessageBox.Show("Informe o equipamento!", "Atenção",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Informe o equipamento!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (!cmbQualidade.Enabled || !cmbEngenharia.Enabled || !cmbProducao.Enabled)
@@ -629,13 +567,10 @@ namespace Gerenciador_de_Ordens_de_servico
                     return;
                 }
 
-                // Recupera o UsuarioResponse selecionado em cada ComboBox
-                // e pega o ID de cada um
                 var gerenteQualidade = (UsuarioResponse)cmbQualidade.SelectedItem;
                 var gerenteEngenharia = (UsuarioResponse)cmbEngenharia.SelectedItem;
                 var gerenteProducao = (UsuarioResponse)cmbProducao.SelectedItem;
 
-                // ── Monta o payload com os IDs reais dos gerentes ──
                 var payload = new
                 {
                     descricao = txtDescricao.Text,
@@ -643,7 +578,7 @@ namespace Gerenciador_de_Ordens_de_servico
                     gerenteQualidadeId = gerenteQualidade.Id,
                     gerenteEngenhariaId = gerenteEngenharia.Id,
                     gerenteProducaoId = gerenteProducao.Id,
-                    usuarioLogadoId = _usuarioLogado.Id  // ID do usuário que fez login
+                    usuarioLogadoId = _usuarioLogado.Id
                 };
 
                 string json = JsonSerializer.Serialize(payload);
@@ -658,30 +593,26 @@ namespace Gerenciador_de_Ordens_de_servico
 
                     if (resposta.IsSuccessStatusCode)
                     {
-                        MessageBox.Show("Ordem de Serviço criada com sucesso!",
-                            "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
+                        MessageBox.Show("Ordem de Serviço criada com sucesso!", "Sucesso",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
                         await MostrarDashboard();
                         DestaqueBotao(btnDashboard);
                     }
                     else
                     {
                         string corpoErro = await resposta.Content.ReadAsStringAsync();
-                        MessageBox.Show(
-                            $"Erro da API:\nStatus: {(int)resposta.StatusCode} {resposta.StatusCode}\n\n{corpoErro}",
+                        MessageBox.Show($"Erro da API:\nStatus: {(int)resposta.StatusCode}\n\n{corpoErro}",
                             "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
                 catch (HttpRequestException ex)
                 {
-                    MessageBox.Show(
-                        $"Sem conexão com a API.\nVerifique se está rodando em {URL_BASE}\n\nDetalhe: {ex.Message}",
+                    MessageBox.Show($"Sem conexão com a API.\nVerifique se está rodando em {URL_BASE}\n\nDetalhe: {ex.Message}",
                         "Erro de Conexão", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Erro inesperado:\n{ex.Message}",
-                        "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Erro inesperado:\n{ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 finally
                 {
@@ -724,7 +655,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
         // ══════════════════════════════════════════════════════════════
         // TELA 3 — ASSINAR OS
-        // Busca as OSCs via GET, filtra as pendentes e permite assinar
+        // GET /osc → filtra pendentes → ListBox → confirmação
         // ══════════════════════════════════════════════════════════════
         private async System.Threading.Tasks.Task MostrarAssinar()
         {
@@ -758,7 +689,6 @@ namespace Gerenciador_de_Ordens_de_servico
             };
             panelConteudo.Controls.Add(lblCarregando);
 
-            // Faz um GET para buscar as OSCs e filtra as pendentes
             var pendentes = new List<OscResponse>();
             try
             {
@@ -768,15 +698,29 @@ namespace Gerenciador_de_Ordens_de_servico
                 {
                     string json = await resposta.Content.ReadAsStringAsync();
                     var opcoes = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var todas = JsonSerializer.Deserialize<List<OscResponse>>(json, opcoes);
+                    var todas = JsonSerializer.Deserialize<List<OscResponse>>(json, opcoes)
+                                  ?? new List<OscResponse>();
 
-                    // Filtra somente as OSCs com status pendente
                     foreach (var osc in todas)
                     {
-                        string status = (osc.status ?? "").ToLower();
-                        if (status == "pendente" || status == "em andamento" || status == "")
+                        string status = (osc.status ?? "").ToLower().Trim();
+
+                        // Status que NÃO são pendentes (excluídos da lista de assinatura)
+                        bool finalizado = status == "aprovado" || status == "concluido"
+                                       || status == "concluído" || status == "rejeitado"
+                                       || status == "cancelado";
+
+                        // Tudo que não está finalizado aparece para assinar
+                        if (!finalizado)
                             pendentes.Add(osc);
                     }
+                }
+                else
+                {
+                    string erro = await resposta.Content.ReadAsStringAsync();
+                    lblCarregando.Text = $"❌  Erro {(int)resposta.StatusCode}: {erro}";
+                    lblCarregando.ForeColor = Color.Red;
+                    return;
                 }
             }
             catch (Exception ex)
@@ -789,7 +733,6 @@ namespace Gerenciador_de_Ordens_de_servico
             panelConteudo.Controls.Remove(lblCarregando);
             lblCarregando.Dispose();
 
-            // ListBox com as OSCs pendentes
             var lista = new ListBox
             {
                 Location = new Point(0, 68),
@@ -800,7 +743,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 BackColor = Color.FromArgb(247, 250, 255)
             };
 
-            // Dicionário para recuperar o ID da OS pelo texto selecionado
+            // Dicionário texto → id para recuperar o ID ao clicar
             var mapaItens = new Dictionary<string, int>();
 
             if (pendentes.Count == 0)
@@ -811,7 +754,9 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 foreach (var osc in pendentes)
                 {
-                    string texto = $"[OS-{osc.id:D3}]  {osc.descricao}  —  {osc.equipamento}";
+                    // Mostra o status real para facilitar identificação
+                    string statusExibir = string.IsNullOrEmpty(osc.status) ? "Sem status" : osc.status;
+                    string texto = $"[OS-{osc.id:D3}]  {osc.descricao}  —  {osc.equipamento}  [{statusExibir}]";
                     lista.Items.Add(texto);
                     mapaItens[texto] = osc.id;
                 }
@@ -842,35 +787,33 @@ namespace Gerenciador_de_Ordens_de_servico
                     return;
                 }
 
-                string itemSelecionado = lista.SelectedItem.ToString();
+                string itemSelecionado = lista.SelectedItem?.ToString() ?? "";
 
                 var confirmacao = MessageBox.Show(
                     $"Confirma a assinatura?\n\n{itemSelecionado}",
-                    "Confirmar Assinatura",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
+                    "Confirmar Assinatura", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                 if (confirmacao != DialogResult.Yes) return;
 
+                if (string.IsNullOrEmpty(itemSelecionado)) return;
                 int idOsc = mapaItens[itemSelecionado];
-
                 btnAssinarOk.Enabled = false;
                 btnAssinarOk.Text = "⏳  Assinando...";
 
                 try
                 {
-                    // TODO: substitua pela chamada real do endpoint de assinatura
+                    // TODO: substitua pela chamada real de assinatura quando tiver o endpoint
                     // Exemplo: await _httpClient.PutAsync($"{URL_BASE}/osc/{idOsc}/assinar", null);
-                    MessageBox.Show($"OS-{idOsc:D3} assinada com sucesso!",
-                        "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"OS-{idOsc:D3} assinada com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     await MostrarDashboard();
                     DestaqueBotao(btnDashboard);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Erro ao assinar: {ex.Message}",
-                        "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Erro ao assinar: {ex.Message}", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 finally
                 {
@@ -881,43 +824,507 @@ namespace Gerenciador_de_Ordens_de_servico
 
             panelConteudo.Controls.Add(btnAssinarOk);
         }
+
+        // ══════════════════════════════════════════════════════════════
+        // TELA 4 — ADMINISTRAÇÃO DE USUÁRIOS
+        // Só acessível por Administrador
+        // GET /usuarios → tabela com botões Editar / Excluir
+        // ══════════════════════════════════════════════════════════════
+        List<UsuarioResponse> todosUsuarios = new List<UsuarioResponse>();
+
+        private async System.Threading.Tasks.Task MostrarAdmin()
+        {
+            LimparConteudo();
+
+            panelConteudo.Controls.Add(new Label
+            {
+                Text = "⚙️  Administração de Usuários",
+                Font = new Font("Segoe UI", 17, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 35, 70),
+                AutoSize = true,
+                Location = new Point(0, 0)
+            });
+
+            // Botão "Novo Usuário" no canto superior direito
+            var btnNovo = new Button
+            {
+                Text = "➕  Novo Usuário",
+                Width = 160,
+                Height = 36,
+                Location = new Point(panelConteudo.Width - 210, 0),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 135, 75),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+            btnNovo.Click += (s, e) => AbrirFormularioUsuario(null);
+            panelConteudo.Controls.Add(btnNovo);
+
+            var lblCarregando = new Label
+            {
+                Text = "⏳  Buscando usuários...",
+                Font = new Font("Segoe UI", 11),
+                ForeColor = Color.Gray,
+                AutoSize = true,
+                Location = new Point(0, 60)
+            };
+            panelConteudo.Controls.Add(lblCarregando);
+
+            // GET /usuarios
+            try
+            {
+                var resposta = await _httpClient.GetAsync($"{URL_BASE}/usuarios");
+
+                if (!resposta.IsSuccessStatusCode)
+                {
+                    lblCarregando.Text = $"❌  Erro {(int)resposta.StatusCode}";
+                    lblCarregando.ForeColor = Color.Red;
+                    return;
+                }
+
+                string json = await resposta.Content.ReadAsStringAsync();
+                var opcoes = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                todosUsuarios = JsonSerializer.Deserialize<List<UsuarioResponse>>(json, opcoes)
+                                ?? new List<UsuarioResponse>();
+            }
+            catch (Exception ex)
+            {
+                lblCarregando.Text = $"❌  Erro: {ex.Message}";
+                lblCarregando.ForeColor = Color.Red;
+                return;
+            }
+
+            panelConteudo.Controls.Remove(lblCarregando);
+            lblCarregando.Dispose();
+
+            var grid = CriarGridUsuarios();
+            grid.Location = new Point(0, 52);
+            grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            grid.Width = panelConteudo.Width - 48;
+            grid.Height = panelConteudo.Height - 100;
+
+            foreach (var u in todosUsuarios)
+                grid.Rows.Add(u.Id, u.Nome, u.Email, u.Perfil, u.Setor);
+
+            // Clique nas colunas de ação (Editar / Excluir)
+            grid.CellClick += async (s, e) =>
+            {
+                if (e.RowIndex < 0) return;
+
+                int id = Convert.ToInt32(grid.Rows[e.RowIndex].Cells["col_id"].Value);
+                var usuario = todosUsuarios.Find(u => u.Id == id);
+                if (usuario == null) return;
+
+                if (e.ColumnIndex == grid.Columns["col_editar"].Index)
+                {
+                    AbrirFormularioUsuario(usuario);
+                }
+                else if (e.ColumnIndex == grid.Columns["col_excluir"].Index)
+                {
+                    var confirmar = MessageBox.Show(
+                        $"Excluir o usuário \"{usuario.Nome}\"?\nEsta ação não pode ser desfeita.",
+                        "Confirmar exclusão", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                    if (confirmar == DialogResult.Yes)
+                        await ExcluirUsuario(id);
+                }
+            };
+
+            panelConteudo.Controls.Add(grid);
+        }
+
+        private DataGridView CriarGridUsuarios()
+        {
+            var grid = new DataGridView
+            {
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                RowHeadersVisible = false,
+                Font = new Font("Segoe UI", 10),
+                RowTemplate = { Height = 40 }
+            };
+
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(235, 241, 255);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(40, 55, 100);
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
+            grid.ColumnHeadersHeight = 42;
+            grid.EnableHeadersVisualStyles = false;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 255);
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "col_id", HeaderText = "ID", Width = 50, AutoSizeMode = DataGridViewAutoSizeColumnMode.None, DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) } });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "col_nome", HeaderText = "Nome", Width = 200, AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) } });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "col_email", HeaderText = "Email", Width = 220, AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) } });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "col_perfil", HeaderText = "Perfil", Width = 130, AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) } });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "col_setor", HeaderText = "Setor", Width = 130, AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) } });
+
+            grid.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "col_editar",
+                HeaderText = "",
+                Text = "✏️  Editar",
+                UseColumnTextForButtonValue = true,
+                Width = 110,
+                FlatStyle = FlatStyle.Flat,
+                DefaultCellStyle = { BackColor = Color.FromArgb(30, 80, 160), ForeColor = Color.White, Font = new Font("Segoe UI", 9) }
+            });
+
+            grid.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "col_excluir",
+                HeaderText = "",
+                Text = "🗑️  Excluir",
+                UseColumnTextForButtonValue = true,
+                Width = 110,
+                FlatStyle = FlatStyle.Flat,
+                DefaultCellStyle = { BackColor = Color.FromArgb(180, 30, 30), ForeColor = Color.White, Font = new Font("Segoe UI", 9) }
+            });
+
+            return grid;
+        }
+
+        // Formulário de criar/editar usuário em janela secundária
+        // usuario == null → CRIAR    |    usuario != null → EDITAR
+        private void AbrirFormularioUsuario(UsuarioResponse? usuario)
+        {
+            bool editando = usuario != null;
+
+            var dialog = new Form
+            {
+                Text = editando ? "Editar Usuário" : "Novo Usuário",
+                Size = new Size(460, 490),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White
+            };
+
+            int y = 20;
+            var txtNome = AdicionarCampoDialog(dialog, "Nome:", ref y);
+            var txtEmail = AdicionarCampoDialog(dialog, "Email:", ref y);
+            var txtSenha = AdicionarCampoDialog(dialog, "Senha (deixe em branco para não alterar):", ref y, senha: true);
+
+            // ComboBox Perfil
+            dialog.Controls.Add(new Label { Text = "Perfil:", Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(50, 60, 100), AutoSize = true, Location = new Point(20, y) });
+            y += 22;
+            var cmbPerfil = new ComboBox { Width = 400, Location = new Point(20, y), Font = new Font("Segoe UI", 10), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(247, 250, 255) };
+            // Ajuste esses valores para bater com o enum Perfil do seu backend
+            cmbPerfil.Items.AddRange(new object[] { "Administrador", "Gerente", "Emitente" });
+            cmbPerfil.SelectedIndex = 0;
+            dialog.Controls.Add(cmbPerfil);
+            y += 38;
+
+            // ComboBox Setor
+            dialog.Controls.Add(new Label { Text = "Setor:", Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(50, 60, 100), AutoSize = true, Location = new Point(20, y) });
+            y += 22;
+            var cmbSetor = new ComboBox { Width = 400, Location = new Point(20, y), Font = new Font("Segoe UI", 10), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(247, 250, 255) };
+            // Ajuste esses valores para bater com o enum Setor do seu backend
+            cmbSetor.Items.AddRange(new object[] { "Qualidade", "Engenharia", "Producao", "Administrativo" });
+            cmbSetor.SelectedIndex = 0;
+            dialog.Controls.Add(cmbSetor);
+            y += 38;
+
+            // Preenche os campos se for edição
+            if (editando)
+            {
+                txtNome.Text = usuario.Nome;
+                txtEmail.Text = usuario.Email;
+
+                // Perfil e Setor já são string — seleciona o item correspondente no ComboBox
+                if (usuario.Perfil != null && cmbPerfil.Items.Contains(usuario.Perfil))
+                    cmbPerfil.SelectedItem = usuario.Perfil;
+
+                if (usuario.Setor != null && cmbSetor.Items.Contains(usuario.Setor))
+                    cmbSetor.SelectedItem = usuario.Setor;
+            }
+
+            var btnSalvar = new Button
+            {
+                Text = "💾  Salvar",
+                Width = 130,
+                Height = 38,
+                Location = new Point(20, y + 10),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = corPrimaria,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+
+            var btnCancelar = new Button
+            {
+                Text = "Cancelar",
+                Width = 100,
+                Height = 38,
+                Location = new Point(160, y + 10),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(220, 220, 225),
+                ForeColor = Color.FromArgb(50, 50, 70),
+                Font = new Font("Segoe UI", 10),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+            btnCancelar.Click += (s, e) => dialog.Close();
+
+            btnSalvar.Click += async (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtNome.Text))
+                { MessageBox.Show("Informe o nome.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtEmail.Text))
+                { MessageBox.Show("Informe o email.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (!editando && string.IsNullOrWhiteSpace(txtSenha.Text))
+                { MessageBox.Show("Informe a senha para novo usuário.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+
+                btnSalvar.Enabled = false;
+                btnSalvar.Text = "⏳  Salvando...";
+
+                string perfilSel = cmbPerfil.SelectedItem?.ToString() ?? "";
+                string setorSel = cmbSetor.SelectedItem?.ToString() ?? "";
+
+                bool sucesso = editando
+                    ? await EditarUsuario(usuario.Id, txtNome.Text, txtEmail.Text, txtSenha.Text, perfilSel, setorSel)
+                    : await CriarUsuario(txtNome.Text, txtEmail.Text, txtSenha.Text, perfilSel, setorSel);
+
+                if (sucesso)
+                {
+                    dialog.Close();
+                    await MostrarAdmin();
+                    DestaqueBotao(btnAdmin);
+                }
+                else
+                {
+                    btnSalvar.Enabled = true;
+                    btnSalvar.Text = "💾  Salvar";
+                }
+            };
+
+            dialog.Controls.Add(btnSalvar);
+            dialog.Controls.Add(btnCancelar);
+            dialog.ShowDialog(this);
+        }
+
+        // Cria Label + TextBox dentro da janela de diálogo
+        private TextBox AdicionarCampoDialog(Form dialog, string rotulo, ref int y, bool senha = false)
+        {
+            dialog.Controls.Add(new Label
+            {
+                Text = rotulo,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(50, 60, 100),
+                AutoSize = true,
+                Location = new Point(20, y)
+            });
+            y += 22;
+
+            var txt = new TextBox
+            {
+                Width = 400,
+                Location = new Point(20, y),
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(247, 250, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                PasswordChar = senha ? '*' : '\0'
+            };
+            dialog.Controls.Add(txt);
+            y += 38;
+            return txt;
+        }
+
+        // POST /usuarios — cria novo usuário
+        private async System.Threading.Tasks.Task<bool> CriarUsuario(
+            string nome, string email, string senha, string perfil, string setor)
+        {
+            var payload = new { nome, email, senha, perfil, setor };
+            string json = JsonSerializer.Serialize(payload);
+            var conteudo = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                var resposta = await _httpClient.PostAsync($"{URL_BASE}/usuarios", conteudo);
+
+                if (resposta.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Usuário criado com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return true;
+                }
+
+                string erro = await resposta.Content.ReadAsStringAsync();
+                MessageBox.Show($"Erro ao criar usuário:\n{erro}", "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro de conexão:\n{ex.Message}", "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        // PUT /usuarios/{id} — edita usuário existente
+        // Não inclui a senha no payload se o campo estiver vazio
+        private async System.Threading.Tasks.Task<bool> EditarUsuario(
+            int id, string nome, string email, string senha, string perfil, string setor)
+        {
+            object payload = string.IsNullOrWhiteSpace(senha)
+                ? (object)new { nome, email, perfil, setor }
+                : (object)new { nome, email, senha, perfil, setor };
+
+            string json = JsonSerializer.Serialize(payload);
+            var conteudo = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                var resposta = await _httpClient.PutAsync($"{URL_BASE}/usuarios/{id}", conteudo);
+
+                if (resposta.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Usuário atualizado com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return true;
+                }
+
+                string erro = await resposta.Content.ReadAsStringAsync();
+                MessageBox.Show($"Erro ao atualizar usuário:\nStatus: {(int)resposta.StatusCode}\n\n{erro}",
+                    "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro de conexão:\n{ex.Message}", "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        // DELETE /usuarios/{id} — exclui usuário
+        private async System.Threading.Tasks.Task ExcluirUsuario(int id)
+        {
+            try
+            {
+                var resposta = await _httpClient.DeleteAsync($"{URL_BASE}/usuarios/{id}");
+
+                if (resposta.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Usuário excluído com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await MostrarAdmin();
+                    DestaqueBotao(btnAdmin);
+                }
+                else
+                {
+                    string erro = await resposta.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Erro ao excluir:\n{erro}", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro de conexão:\n{ex.Message}", "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
-    // OscResponse: espelha exatamente o JSON que a API retorna
-    //
-    // IMPORTANTE: abra http://localhost:5184/osc no navegador,
-    // veja os campos que aparecem e ajuste esta classe para bater.
-    // PropertyNameCaseInsensitive já cuida de maiúsculas/minúsculas.
+    // MODELOS DE DADOS
+    // Espelham o JSON retornado pela API
     // ══════════════════════════════════════════════════════════════
+
     public class OscResponse
     {
         public int id { get; set; }
-        public string descricao { get; set; }
-        public string equipamento { get; set; }
-        public string status { get; set; }
-        public string dataEmissao { get; set; }
+        public string? descricao { get; set; }
+        public string? equipamento { get; set; }
+        public string? status { get; set; }
+        public string? dataEmissao { get; set; }
         public int gerenteQualidadeId { get; set; }
         public int gerenteEngenhariaId { get; set; }
         public int gerenteProducaoId { get; set; }
         public int usuarioLogadoId { get; set; }
-        // Adicione outros campos que a API retornar
     }
 
     // ══════════════════════════════════════════════════════════════
-    // UsuarioResponse: espelha o JSON retornado por GET /auth/usuarios/gerentes/{setor}
-    // O ToString() é sobrescrito para que o ComboBox exiba Nome — Setor
+    // JsonConverter que aceita tanto string quanto int para Perfil/Setor
+    //
+    // O endpoint /auth/login retorna: "perfil": "Administrador" (string)
+    // O endpoint /usuarios     retorna: "perfil": 1             (int)
+    //
+    // Este converter lida com os dois casos automaticamente.
     // ══════════════════════════════════════════════════════════════
+    public class StringOrIntConverter : System.Text.Json.Serialization.JsonConverter<string>
+    {
+        // Mapas de int → string para cada enum do backend
+        // IMPORTANTE: ajuste a ordem conforme seus enums no backend (conta de 0)
+        private static readonly string[] _perfis = { "Administrador", "Gerente", "Emitente" };
+        private static readonly string[] _setores = { "Qualidade", "Engenharia", "Producao", "Administrativo" };
+
+        private readonly string[] _map;
+
+        public StringOrIntConverter(string[] map) { _map = map; }
+        public StringOrIntConverter() { _map = _perfis; } // padrão
+
+        public override string Read(ref System.Text.Json.Utf8JsonReader reader,
+                                    Type typeToConvert,
+                                    System.Text.Json.JsonSerializerOptions options)
+        {
+            // Se vier como número, converte para texto usando o mapa
+            if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+            {
+                int index = reader.GetInt32();
+                return (index >= 0 && index < _map.Length) ? _map[index] : $"({index})";
+            }
+
+            // Se vier como string, retorna direto
+            return reader.GetString() ?? "";
+        }
+
+        public override void Write(System.Text.Json.Utf8JsonWriter writer,
+                                   string value,
+                                   System.Text.Json.JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value);
+        }
+    }
+
+    public class PerfilConverter : StringOrIntConverter
+    {
+        private static readonly string[] _map = { "Administrador", "Gerente", "Emitente" };
+        public PerfilConverter() : base(_map) { }
+    }
+
+    public class SetorConverter : StringOrIntConverter
+    {
+        private static readonly string[] _map = { "Qualidade", "Engenharia", "Producao", "Administrativo" };
+        public SetorConverter() : base(_map) { }
+    }
+
     public class UsuarioResponse
     {
         public int Id { get; set; }
-        public string Nome { get; set; }
-        public string Email { get; set; }
-        public string Perfil { get; set; }
-        public string Setor { get; set; }
+        public string? Nome { get; set; }
+        public string? Email { get; set; }
 
-        // O ComboBox chama ToString() para exibir o item na lista
-        // Sobrescrevemos para mostrar algo mais amigável que o tipo da classe
-        public override string ToString() => $"{Nome}  ({Email})";
+        // [JsonConverter] permite que este campo aceite string OU int da API
+        // O PerfilConverter converte int → "Administrador", "Gerente", etc.
+        // Se já vier como string, passa direto
+        [JsonConverter(typeof(PerfilConverter))]
+        public string? Perfil { get; set; }
+
+        [JsonConverter(typeof(SetorConverter))]
+        public string? Setor { get; set; }
+
+        // ComboBox usa ToString() para exibir o item na lista
+        public override string? ToString() => $"{Nome}  ({Email})";
     }
 }
