@@ -265,7 +265,8 @@ namespace Gerenciador_de_Ordens_de_servico
                 AllowUserToAddRows = false,
                 RowHeadersVisible = false,
                 Font = new Font("Segoe UI", 10),
-                RowTemplate = { Height = 38 }
+                // Altura maior para acomodar as 3 linhas de assinatura
+                RowTemplate = { Height = 52 }
             };
 
             grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(235, 241, 255);
@@ -276,11 +277,16 @@ namespace Gerenciador_de_Ordens_de_servico
             grid.EnableHeadersVisualStyles = false;
             grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 255);
 
-            AdicionarColuna(grid, "ID", "id", 70, DataGridViewAutoSizeColumnMode.None);
-            AdicionarColuna(grid, "Descrição", "descricao", 200, DataGridViewAutoSizeColumnMode.Fill);
-            AdicionarColuna(grid, "Equipamento", "equipamento", 150, DataGridViewAutoSizeColumnMode.AllCells);
-            AdicionarColuna(grid, "Data", "data", 110, DataGridViewAutoSizeColumnMode.AllCells);
-            AdicionarColuna(grid, "Status", "status", 120, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "ID", "id", 55, DataGridViewAutoSizeColumnMode.None);
+            AdicionarColuna(grid, "Descrição", "descricao", 160, DataGridViewAutoSizeColumnMode.Fill);
+            AdicionarColuna(grid, "Equipamento", "equipamento", 130, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Emitente", "emitente", 110, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Data", "data", 90, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Status", "status", 150, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Assinaturas", "assinaturas", 90, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Qualidade", "qualidade", 130, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Engenharia", "engenharia", 130, DataGridViewAutoSizeColumnMode.AllCells);
+            AdicionarColuna(grid, "Produção", "producao", 130, DataGridViewAutoSizeColumnMode.AllCells);
 
             return grid;
         }
@@ -309,32 +315,73 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 var osc = todasAsOscs[i];
 
-                string dataFormatada = !string.IsNullOrEmpty(osc.dataEmissao)
-                    ? osc.dataEmissao.Substring(0, Math.Min(10, osc.dataEmissao.Length))
-                    : "—";
+                // Formata a data (vem como "2026-03-14T00:49:04Z", mostra só "14/03/2026")
+                string dataFormatada = "—";
+                if (!string.IsNullOrEmpty(osc.dataEmissao) &&
+                    DateTime.TryParse(osc.dataEmissao, out DateTime dt))
+                    dataFormatada = dt.ToString("dd/MM/yyyy");
 
-                int linha = grid.Rows.Add(osc.id, osc.descricao, osc.equipamento,
-                                          dataFormatada, osc.status ?? "Pendente");
+                // Indicador de assinaturas: "2/3" com emoji de progresso
+                string progresso = $"{osc.TotalAssinaturas}/3";
 
-                var celula = grid.Rows[linha].Cells["status"];
+                // Cada gerente: mostra "✅ Nome" se assinou ou "⏳ Nome" se pendente
+                string qualidade = $"{(osc.qualidadeAssinou ? "✅" : "⏳")} {osc.gerenteQualidade?.nome ?? "—"}";
+                string engenharia = $"{(osc.engenhariaAssinou ? "✅" : "⏳")} {osc.gerenteEngenharia?.nome ?? "—"}";
+                string producao = $"{(osc.producaoAssinou ? "✅" : "⏳")} {osc.gerenteProducao?.nome ?? "—"}";
+
+                int linha = grid.Rows.Add(
+                    osc.id,
+                    osc.descricao,
+                    osc.equipamento,
+                    osc.emitenteNome ?? "—",
+                    dataFormatada,
+                    osc.status ?? "—",
+                    progresso,
+                    qualidade,
+                    engenharia,
+                    producao
+                );
+
+                // ── Cor da célula Status conforme o valor ──────────────
+                var celulaStatus = grid.Rows[linha].Cells["status"];
                 switch ((osc.status ?? "").ToLower())
                 {
                     case "aprovado":
                     case "concluido":
                     case "concluído":
-                        celula.Style.ForeColor = Color.FromArgb(0, 130, 70);
-                        celula.Style.BackColor = Color.FromArgb(220, 255, 235);
+                        celulaStatus.Style.ForeColor = Color.FromArgb(0, 130, 70);
+                        celulaStatus.Style.BackColor = Color.FromArgb(220, 255, 235);
                         break;
+                    case "aguardandoassinaturas":
                     case "pendente":
                     case "em andamento":
-                        celula.Style.ForeColor = Color.FromArgb(160, 90, 0);
-                        celula.Style.BackColor = Color.FromArgb(255, 244, 205);
+                        celulaStatus.Style.ForeColor = Color.FromArgb(160, 90, 0);
+                        celulaStatus.Style.BackColor = Color.FromArgb(255, 244, 205);
                         break;
                     case "rejeitado":
                     case "cancelado":
-                        celula.Style.ForeColor = Color.FromArgb(170, 30, 30);
-                        celula.Style.BackColor = Color.FromArgb(255, 222, 222);
+                        celulaStatus.Style.ForeColor = Color.FromArgb(170, 30, 30);
+                        celulaStatus.Style.BackColor = Color.FromArgb(255, 222, 222);
                         break;
+                }
+
+                // ── Cor da célula Assinaturas conforme progresso ───────
+                var celulaAssign = grid.Rows[linha].Cells["assinaturas"];
+                celulaAssign.Style.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                if (osc.TotalAssinaturas == 3)
+                {
+                    celulaAssign.Style.ForeColor = Color.FromArgb(0, 130, 70);
+                    celulaAssign.Style.BackColor = Color.FromArgb(220, 255, 235);
+                }
+                else if (osc.TotalAssinaturas > 0)
+                {
+                    celulaAssign.Style.ForeColor = Color.FromArgb(160, 90, 0);
+                    celulaAssign.Style.BackColor = Color.FromArgb(255, 244, 205);
+                }
+                else
+                {
+                    celulaAssign.Style.ForeColor = Color.FromArgb(170, 30, 30);
+                    celulaAssign.Style.BackColor = Color.FromArgb(255, 222, 222);
                 }
             }
         }
@@ -705,13 +752,14 @@ namespace Gerenciador_de_Ordens_de_servico
                     {
                         string status = (osc.status ?? "").ToLower().Trim();
 
-                        // Status que NÃO são pendentes (excluídos da lista de assinatura)
-                        bool finalizado = status == "aprovado" || status == "concluido"
-                                       || status == "concluído" || status == "rejeitado"
-                                       || status == "cancelado";
+                        // Inclui OSCs que ainda aguardam assinaturas
+                        // "aguardandoassinaturas" é o status real retornado pela API
+                        bool aguardando = status == "aguardandoassinaturas"
+                                       || status == "pendente"
+                                       || status == "em andamento"
+                                       || status == "";
 
-                        // Tudo que não está finalizado aparece para assinar
-                        if (!finalizado)
+                        if (aguardando)
                             pendentes.Add(osc);
                     }
                 }
@@ -754,9 +802,11 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 foreach (var osc in pendentes)
                 {
-                    // Mostra o status real para facilitar identificação
-                    string statusExibir = string.IsNullOrEmpty(osc.status) ? "Sem status" : osc.status;
-                    string texto = $"[OS-{osc.id:D3}]  {osc.descricao}  —  {osc.equipamento}  [{statusExibir}]";
+                    // Mostra progresso de assinaturas e quais gerentes ainda precisam assinar
+                    string q = osc.qualidadeAssinou ? "✅" : "⏳";
+                    string e = osc.engenhariaAssinou ? "✅" : "⏳";
+                    string p = osc.producaoAssinou ? "✅" : "⏳";
+                    string texto = $"[OS-{osc.id:D3}]  {osc.descricao}  |  {osc.TotalAssinaturas}/3  Q:{q} E:{e} P:{p}";
                     lista.Items.Add(texto);
                     mapaItens[texto] = osc.id;
                 }
@@ -1241,17 +1291,46 @@ namespace Gerenciador_de_Ordens_de_servico
     // Espelham o JSON retornado pela API
     // ══════════════════════════════════════════════════════════════
 
+    // Modelo que espelha exatamente o JSON retornado por GET /osc e GET /osc/{id}
     public class OscResponse
     {
         public int id { get; set; }
         public string? descricao { get; set; }
         public string? equipamento { get; set; }
-        public string? status { get; set; }
+        public string? acaoTomada { get; set; }
         public string? dataEmissao { get; set; }
-        public int gerenteQualidadeId { get; set; }
-        public int gerenteEngenhariaId { get; set; }
-        public int gerenteProducaoId { get; set; }
-        public int usuarioLogadoId { get; set; }
+        public string? status { get; set; }
+
+        // Dados do emitente
+        public int emitenteId { get; set; }
+        public string? emitenteNome { get; set; }
+        public string? emitenteSetor { get; set; }
+
+        // Objetos aninhados com nome e dados dos gerentes
+        public GerenteInfo? gerenteQualidade { get; set; }
+        public GerenteInfo? gerenteEngenharia { get; set; }
+        public GerenteInfo? gerenteProducao { get; set; }
+
+        // Status de assinatura de cada gerente
+        public bool qualidadeAssinou { get; set; }
+        public bool engenhariaAssinou { get; set; }
+        public bool producaoAssinou { get; set; }
+
+        // Quantas assinaturas já foram feitas (calculado no cliente)
+        public int TotalAssinaturas =>
+            (qualidadeAssinou ? 1 : 0) +
+            (engenhariaAssinou ? 1 : 0) +
+            (producaoAssinou ? 1 : 0);
+    }
+
+    // Representa o objeto de gerente aninhado no JSON da OS
+    public class GerenteInfo
+    {
+        public int id { get; set; }
+        public string? nome { get; set; }
+        public string? email { get; set; }
+        public string? perfil { get; set; }
+        public string? setor { get; set; }
     }
 
     // ══════════════════════════════════════════════════════════════
