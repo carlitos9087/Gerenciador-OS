@@ -30,7 +30,6 @@
         {
             panel1 = new Panel();
             label4 = new Label();
-            label3 = new Label();
             label2 = new Label();
             label1 = new Label();
             textBox1 = new TextBox();
@@ -48,7 +47,6 @@
             panel1.AutoSize = true;
             panel1.BackColor = Color.FromArgb(15, 28, 46);
             panel1.Controls.Add(label4);
-            panel1.Controls.Add(label3);
             panel1.Controls.Add(label2);
             panel1.Controls.Add(label1);
             panel1.Dock = DockStyle.Left;
@@ -56,7 +54,7 @@
             panel1.Name = "panel1";
             panel1.Padding = new Padding(20, 0, 20, 0);
             panel1.RightToLeft = RightToLeft.No;
-            panel1.Size = new Size(395, 686);
+            panel1.Size = new Size(343, 686);
             panel1.TabIndex = 0;
             // 
             // label4
@@ -64,24 +62,13 @@
             label4.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             label4.AutoSize = true;
             label4.ForeColor = SystemColors.AppWorkspace;
-            label4.Location = new Point(72, 295);
+            label4.Location = new Point(23, 407);
             label4.MaximumSize = new Size(300, 0);
             label4.Name = "label4";
-            label4.Size = new Size(300, 45);
+            label4.Size = new Size(297, 30);
             label4.TabIndex = 4;
-            label4.Text = "Plataforma digital para gestão, aprovação e rastreamento de Ordens de Serviço Crítico — 100% sem papel.";
-            // 
-            // label3
-            // 
-            label3.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            label3.AutoSize = true;
-            label3.Font = new Font("Segoe UI", 20F);
-            label3.ForeColor = Color.DarkGoldenrod;
-            label3.Location = new Point(72, 197);
-            label3.Name = "label3";
-            label3.Size = new Size(94, 37);
-            label3.TabIndex = 3;
-            label3.Text = "Crítico";
+            label4.Text = "Plataforma digital para gestão, aprovação e rastreamento de Ordens de Serviço — 100% sem papel.";
+            label4.Click += label4_Click;
             // 
             // label2
             // 
@@ -89,7 +76,7 @@
             label2.AutoSize = true;
             label2.Font = new Font("Segoe UI", 20F);
             label2.ForeColor = Color.White;
-            label2.Location = new Point(72, 150);
+            label2.Location = new Point(60, 150);
             label2.Name = "label2";
             label2.Size = new Size(231, 37);
             label2.TabIndex = 2;
@@ -100,7 +87,7 @@
             label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             label1.AutoSize = true;
             label1.ForeColor = Color.Gray;
-            label1.Location = new Point(72, 80);
+            label1.Location = new Point(88, 32);
             label1.Name = "label1";
             label1.Size = new Size(164, 15);
             label1.TabIndex = 1;
@@ -204,7 +191,6 @@
         private Panel panel2;
         private Label label2;
         private Label label4;
-        private Label label3;
         private TextBox textBox2;
         private Label label5;
         private Label label6;

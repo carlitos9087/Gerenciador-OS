@@ -88,8 +88,8 @@
             // ── Form3 ───────────────────────────────────────
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1100, 650);
-            this.MinimumSize = new System.Drawing.Size(900, 520);
+            this.ClientSize = new System.Drawing.Size(1400, 650);
+            this.MinimumSize = new System.Drawing.Size(1100, 520);
             this.Text = "Gerenciador de Ordens de Serviço";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
 

@@ -132,5 +132,10 @@ namespace Gerenciador_de_Ordens_de_servico
                 button1.Text = "Entrar";
             }
         }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

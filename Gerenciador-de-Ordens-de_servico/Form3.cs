@@ -122,11 +122,11 @@ namespace Gerenciador_de_Ordens_de_servico
                             || perfil.Equals("Admin", StringComparison.OrdinalIgnoreCase);
 
             // Todos os botões sempre visíveis — inativos ficam acinzentados e sem clique
-            EstilizarBotao(btnDashboard, "🏠  Dashboard");
+            EstilizarBotao(btnDashboard, "📈  Dashboard");
             EstilizarBotao(btnCriarRelatorio, "➕  Criar OS");
             EstilizarBotao(btnAssinar, "✅  Assinar OS");
             EstilizarBotao(btnAdmin, "👥  Gerenciar Usuários");
-            EstilizarBotao(btnGerenciarOscs, "⚙️  Gerenciar OSCs");
+            EstilizarBotao(btnGerenciarOscs, "🛠️  Gerenciar OSCs");
 
             // Dashboard — sempre ativo para todos
             btnDashboard.Click += async (s, e) => { await MostrarDashboard(); DestaqueBotao(btnDashboard); };
@@ -156,19 +156,26 @@ namespace Gerenciador_de_Ordens_de_servico
                 DesabilitarBotao(btnGerenciarOscs);
         }
 
-        // Aplica visual cinza e tooltip explicativo — botão visível mas não funcional
+        // Aplica visual bloqueado e cursor de "não permitido" — botão visível mas sem função
         private void DesabilitarBotao(Button btn)
         {
             btn.BackColor = corBotaoInativo;
             btn.ForeColor = corTextoBotaoInativo;
-            btn.Cursor = Cursors.Default;  // cursor normal, não "mãozinha"
 
-            // Tooltip explicando o motivo
-            var tip = new ToolTip();
-            tip.SetToolTip(btn, "Seu perfil não tem acesso a esta função.");
+            // Cursors.No = cursor de "proibido" (círculo com barra vermelha)
+            // Aparece quando o mouse passa por cima do botão
+            btn.Cursor = Cursors.No;
+
+            // Tooltip explicando o motivo ao passar o mouse
+            var tip = new ToolTip
+            {
+                InitialDelay = 200,   // aparece rápido
+                ShowAlways = true
+            };
+            tip.SetToolTip(btn, "⛔  Seu perfil não tem acesso a esta função.");
 
             // Garante que cliques não façam nada
-            btn.Click += (s, e) => { /* inativo */ };
+            btn.Click += (s, e) => { /* bloqueado por perfil */ };
         }
 
         private void EstilizarBotao(Button btn, string texto)
@@ -198,19 +205,39 @@ namespace Gerenciador_de_Ordens_de_servico
         // ══════════════════════════════════════════════
         // UTILITÁRIO
         // ══════════════════════════════════════════════
+
+        // Painel interno com margem — todos os controles vão aqui
+        // Isso garante espaçamento consistente em todas as telas
+        Panel _painelInterno = null!;
+
         private void LimparConteudo()
         {
             foreach (Control c in panelConteudo.Controls)
                 c.Dispose();
             panelConteudo.Controls.Clear();
+
+            // Recria o painel interno com margem de 28px em todos os lados
+            _painelInterno = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = Color.Transparent
+            };
+            panelConteudo.Controls.Add(_painelInterno);
         }
+
+        // Atalho: adiciona ao painel interno (com margem) em vez de direto no panelConteudo
+        private void Add(Control c) => _painelInterno.Controls.Add(c);
+
+        // Largura disponível dentro do painel interno (descontando o padding)
+        private int LarguraUtil => _painelInterno.Width - _painelInterno.Padding.Horizontal;
 
         // Cria Label + TextBox dentro do panelConteudo
         private void AdicionarCampo(string rotulo, ref int y,
                                     out TextBox caixaTexto,
                                     int altura = 32, bool multiline = false)
         {
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = rotulo,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
@@ -228,9 +255,10 @@ namespace Gerenciador_de_Ordens_de_servico
                 Font = new Font("Segoe UI", 10),
                 BackColor = Color.FromArgb(247, 250, 255),
                 BorderStyle = BorderStyle.FixedSingle,
-                Multiline = multiline
+                Multiline = multiline,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
-            panelConteudo.Controls.Add(caixaTexto);
+            Add(caixaTexto);
             y += altura + 18;
         }
 
@@ -264,7 +292,7 @@ namespace Gerenciador_de_Ordens_de_servico
         // Cor das linhas pares e ímpares — usada em todas as grids
         // Definida aqui para ser consistente em todo o sistema
         readonly Color corLinhaBase = Color.FromArgb(255, 255, 255); // branco
-        readonly Color corLinhaAlternada = Color.FromArgb(241, 245, 255); // azul muito claro
+        readonly Color corLinhaAlternada = Color.FromArgb(245, 246, 248); // cinza muito claro (quase branco)
 
         // Cria um DataGridView padrão estilizado
         // Todas as grids do sistema usam este método — garante visual consistente
@@ -283,25 +311,31 @@ namespace Gerenciador_de_Ordens_de_servico
                 RowTemplate = { Height = alturaLinha }
             };
 
-            // Cabeçalho
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 80, 160);  // azul primário
+            // Cabeçalho — preto conforme escolha do usuário
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 30, 30);
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
             grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
             grid.ColumnHeadersHeight = 42;
             grid.EnableHeadersVisualStyles = false;
+            // Desabilita o realce azul do cabeçalho ao clicar na coluna para ordenar
+            grid.ColumnHeaderMouseClick += (s, ev) => { };  // absorve o clique mas não ordena
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(30, 30, 30);
+            grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
 
             // Linha base (pares)
             grid.DefaultCellStyle.BackColor = corLinhaBase;
             grid.DefaultCellStyle.ForeColor = Color.FromArgb(40, 45, 60);
 
-            // Linha alternada (ímpares) — mesma família de cor, um tom mais escuro
+            // Linha alternada (ímpares) — cinza quase branco
             grid.AlternatingRowsDefaultCellStyle.BackColor = corLinhaAlternada;
             grid.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(40, 45, 60);
 
-            // Cor de seleção
-            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(30, 80, 160);
-            grid.DefaultCellStyle.SelectionForeColor = Color.White;
+            // Cor de seleção — azul suave que não "apaga" o conteúdo
+            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(180, 200, 230);
+            grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(20, 30, 60);
+            grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(165, 188, 222);
+            grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.FromArgb(20, 30, 60);
 
             return grid;
         }
@@ -309,14 +343,17 @@ namespace Gerenciador_de_Ordens_de_servico
         private void AddCol(DataGridView g, string name, string header, int w,
                             DataGridViewAutoSizeColumnMode mode = DataGridViewAutoSizeColumnMode.None)
         {
-            g.Columns.Add(new DataGridViewTextBoxColumn
+            var col = new DataGridViewTextBoxColumn
             {
                 Name = name,
                 HeaderText = header,
                 Width = w,
                 AutoSizeMode = mode,
-                DefaultCellStyle = { Padding = new Padding(8, 0, 0, 0) }
-            });
+            };
+            // Aplica só o padding — sem definir BackColor/ForeColor na coluna
+            // para garantir que as cores da linha (base e alternada) sejam herdadas corretamente
+            col.DefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
+            g.Columns.Add(col);
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -328,7 +365,8 @@ namespace Gerenciador_de_Ordens_de_servico
         // ══════════════════════════════════════════════════════════════
         const int ITENS_POR_PAGINA = 6;
         int paginaAtual = 1;
-        List<OscResponse> todasAsOscs = new List<OscResponse>();
+        List<OscResponse> todasAsOscs = new List<OscResponse>(); // lista completa da API
+        List<OscResponse> oscsFiltradas = new List<OscResponse>(); // lista após aplicar filtros
 
         // Define a "prioridade" de ordenação de cada status
         // Menor número = aparece primeiro
@@ -370,7 +408,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 subtitulo = "Todas as Ordens de Serviço";
             }
 
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = "Dashboard — Ordens de Serviço",
                 Font = new Font("Segoe UI", 17, FontStyle.Bold),
@@ -378,7 +416,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 AutoSize = true,
                 Location = new Point(0, 0)
             });
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = subtitulo,
                 Font = new Font("Segoe UI", 10),
@@ -395,7 +433,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 AutoSize = true,
                 Location = new Point(0, 70)
             };
-            panelConteudo.Controls.Add(lblCarregando);
+            Add(lblCarregando);
 
             try
             {
@@ -426,31 +464,137 @@ namespace Gerenciador_de_Ordens_de_servico
                 return;
             }
 
-            panelConteudo.Controls.Remove(lblCarregando);
+            _painelInterno.Controls.Remove(lblCarregando);
             lblCarregando.Dispose();
 
+            // Inicializa lista filtrada com todas as OSCs
+            oscsFiltradas = todasAsOscs.ToList();
+
+            // ── Barra de filtros ────────────────────────────────────────
+            // Fica entre o subtítulo e a tabela
+            var painelFiltros = new Panel
+            {
+                Location = new Point(0, 56),
+                Height = 38,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Width = _painelInterno.Width - _painelInterno.Padding.Horizontal,
+                BackColor = Color.Transparent
+            };
+
+            // Campo de busca por texto
+            var txtBusca = new TextBox
+            {
+                Width = 220,
+                Height = 28,
+                Location = new Point(0, 4),
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(247, 250, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = "🔍  Buscar por descrição ou equipamento..."
+            };
+            painelFiltros.Controls.Add(txtBusca);
+
+            // ComboBox de status
+            var cmbStatus = new ComboBox
+            {
+                Width = 190,
+                Location = new Point(228, 4),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(247, 250, 255),
+                FlatStyle = FlatStyle.Flat
+            };
+            cmbStatus.Items.AddRange(new object[]
+            {
+                "Todos os status",
+                "AguardandoAssinaturas",
+                "AguardandoValidacao",
+                "Concluida",
+                "Cancelada"
+            });
+            cmbStatus.SelectedIndex = 0;
+            painelFiltros.Controls.Add(cmbStatus);
+
+            // Botão limpar filtros
+            var btnLimpar = new Button
+            {
+                Text = "✖  Limpar",
+                Width = 90,
+                Height = 28,
+                Location = new Point(426, 4),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9),
+                BackColor = Color.FromArgb(220, 220, 225),
+                ForeColor = Color.FromArgb(60, 60, 80),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+            painelFiltros.Controls.Add(btnLimpar);
+
+            Add(painelFiltros);
+
+            // Grid e paginação
+            var grid = CriarGridDashboard();
+            grid.Location = new Point(0, 100);
+            grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 148;
+            Add(grid);
+
+            var painelPag = CriarPaginacao(grid);
+            Add(painelPag);
+
+            // Função que aplica os filtros e recarrega a grid
+            void AplicarFiltros()
+            {
+                string busca = txtBusca.Text.Trim().ToLower();
+                string status = cmbStatus.SelectedIndex == 0 ? "" : (cmbStatus.SelectedItem?.ToString() ?? "");
+
+                oscsFiltradas = todasAsOscs.Where(o =>
+                {
+                    // Filtro de texto: descrição ou equipamento contém o texto buscado
+                    bool passaBusca = string.IsNullOrEmpty(busca)
+                        || (o.descricao ?? "").ToLower().Contains(busca)
+                        || (o.equipamento ?? "").ToLower().Contains(busca)
+                        || (o.emitenteNome ?? "").ToLower().Contains(busca);
+
+                    // Filtro de status: status exato ou "todos"
+                    bool passaStatus = string.IsNullOrEmpty(status)
+                        || (o.status ?? "").Equals(status, StringComparison.OrdinalIgnoreCase);
+
+                    return passaBusca && passaStatus;
+                }).ToList();
+
+                paginaAtual = 1;
+                CarregarPaginaDashboard(grid, paginaAtual);
+                AtualizarPag(painelPag, Math.Max(1, (int)Math.Ceiling((double)oscsFiltradas.Count / ITENS_POR_PAGINA)));
+            }
+
+            // Aplica filtro ao digitar (em tempo real)
+            txtBusca.TextChanged += (s, e) => AplicarFiltros();
+            cmbStatus.SelectedIndexChanged += (s, e) => AplicarFiltros();
+
+            // Limpa todos os filtros
+            btnLimpar.Click += (s, e) =>
+            {
+                txtBusca.Clear();
+                cmbStatus.SelectedIndex = 0;
+                // AplicarFiltros é chamado pelos eventos acima
+            };
+
+            // Carrega sem filtro na primeira vez
             if (todasAsOscs.Count == 0)
             {
-                panelConteudo.Controls.Add(new Label
+                Add(new Label
                 {
                     Text = "Nenhuma OS encontrada.",
                     Font = new Font("Segoe UI", 12),
                     ForeColor = Color.Gray,
                     AutoSize = true,
-                    Location = new Point(0, 70)
+                    Location = new Point(0, 110)
                 });
                 return;
             }
-
-            var grid = CriarGridDashboard();
-            grid.Location = new Point(0, 62);
-            grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-            grid.Width = panelConteudo.Width - 48;
-            grid.Height = panelConteudo.Height - 150;
-            panelConteudo.Controls.Add(grid);
-
-            var painelPag = CriarPaginacao(grid);
-            panelConteudo.Controls.Add(painelPag);
 
             CarregarPaginaDashboard(grid, paginaAtual);
         }
@@ -474,11 +618,11 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             grid.Rows.Clear();
             int inicio = (pagina - 1) * ITENS_POR_PAGINA;
-            int fim = Math.Min(inicio + ITENS_POR_PAGINA, todasAsOscs.Count);
+            int fim = Math.Min(inicio + ITENS_POR_PAGINA, oscsFiltradas.Count);
 
             for (int i = inicio; i < fim; i++)
             {
-                var osc = todasAsOscs[i];
+                var osc = oscsFiltradas[i];
 
                 string data = "—";
                 if (!string.IsNullOrEmpty(osc.dataEmissao) &&
@@ -497,7 +641,7 @@ namespace Gerenciador_de_Ordens_de_servico
                     osc.status, assig
                 );
 
-                // Cor do status
+                // Cor do status — fundo claro com texto colorido (sobre fundo branco)
                 var celStatus = grid.Rows[row].Cells["d_status"];
                 switch ((osc.status ?? "").ToLower())
                 {
@@ -507,9 +651,12 @@ namespace Gerenciador_de_Ordens_de_servico
                         celStatus.Style.BackColor = Color.FromArgb(220, 255, 235);
                         break;
                     case "aguardandoassinaturas":
-                    case "aguardandovalidacao":
                         celStatus.Style.ForeColor = Color.FromArgb(160, 90, 0);
                         celStatus.Style.BackColor = Color.FromArgb(255, 244, 205);
+                        break;
+                    case "aguardandovalidacao":
+                        celStatus.Style.ForeColor = Color.FromArgb(30, 80, 160);
+                        celStatus.Style.BackColor = Color.FromArgb(220, 235, 255);
                         break;
                     case "cancelada":
                         celStatus.Style.ForeColor = Color.FromArgb(170, 30, 30);
@@ -517,7 +664,7 @@ namespace Gerenciador_de_Ordens_de_servico
                         break;
                 }
 
-                // Cor das assinaturas
+                // Cor das assinaturas — fundo claro com texto colorido
                 var celAssig = grid.Rows[row].Cells["d_assig"];
                 celAssig.Style.Font = new Font("Segoe UI", 9, FontStyle.Bold);
                 if (osc.TotalAssinaturas == 3)
@@ -531,7 +678,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
         private Panel CriarPaginacao(DataGridView grid)
         {
-            int total = (int)Math.Ceiling((double)todasAsOscs.Count / ITENS_POR_PAGINA);
+            int total = (int)Math.Ceiling((double)oscsFiltradas.Count / ITENS_POR_PAGINA);
             if (total < 1) total = 1;
 
             var painel = new Panel { Height = 44, Dock = DockStyle.Bottom, BackColor = Color.White };
@@ -597,13 +744,13 @@ namespace Gerenciador_de_Ordens_de_servico
         // ══════════════════════════════════════════════════════════════
         // TELA 2 — CRIAR OS
         // POST /osc com: descricao, equipamento, acaoTomada, usuarioLogadoId
-        // Qualquer perfil com acesso pode criar — sem seleção de gerentes
         // ══════════════════════════════════════════════════════════════
         private void MostrarCriarOS()
         {
             LimparConteudo();
 
-            panelConteudo.Controls.Add(new Label
+            // Título
+            Add(new Label
             {
                 Text = "Criar Nova Ordem de Serviço",
                 Font = new Font("Segoe UI", 17, FontStyle.Bold),
@@ -612,17 +759,60 @@ namespace Gerenciador_de_Ordens_de_servico
                 Location = new Point(0, 0)
             });
 
-            int y = 50;
-            AdicionarCampo("Descrição:", ref y, out TextBox txtDescricao);
-            AdicionarCampo("Equipamento:", ref y, out TextBox txtEquipamento);
-            AdicionarCampo("Ação Tomada:", ref y, out TextBox txtAcao, altura: 70, multiline: true);
+            // Largura real disponível (descontando padding do painel interno)
+            int W = _painelInterno.ClientSize.Width - _painelInterno.Padding.Horizontal;
+            if (W < 200) W = 500; // fallback caso ainda não tenha sido calculado
 
+            int y = 48;
+            int espacoEntreGrupos = 18;
+
+            // ── helpers ──────────────────────────────────────────────
+            Label MkLbl(string t, int posY) => new Label
+            {
+                Text = t,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(50, 60, 100),
+                AutoSize = true,
+                Location = new Point(0, posY)
+            };
+
+            TextBox MkTxt(int posY, int h = 36, bool multi = false) => new TextBox
+            {
+                Location = new Point(0, posY),
+                Width = W,
+                Height = h,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(247, 250, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                Multiline = multi,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // ── campos ───────────────────────────────────────────────
+            Add(MkLbl("Descrição:", y));
+            y += 24;
+            var txtDescricao = MkTxt(y);
+            Add(txtDescricao);
+            y += txtDescricao.Height + espacoEntreGrupos;
+
+            Add(MkLbl("Equipamento:", y));
+            y += 24;
+            var txtEquipamento = MkTxt(y);
+            Add(txtEquipamento);
+            y += txtEquipamento.Height + espacoEntreGrupos;
+
+            Add(MkLbl("Ação Tomada:", y));
+            y += 24;
+            var txtAcao = MkTxt(y, h: 120, multi: true);
+            Add(txtAcao);
+            y += txtAcao.Height + espacoEntreGrupos + 8;
+
+            // ── botão centralizado ────────────────────────────────────
             var btnSalvar = new Button
             {
                 Text = "💾  Salvar",
-                Width = 160,
-                Height = 40,
-                Location = new Point(0, y + 8),
+                Width = 200,
+                Height = 46,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = corPrimaria,
                 ForeColor = Color.White,
@@ -630,6 +820,24 @@ namespace Gerenciador_de_Ordens_de_servico
                 Cursor = Cursors.Hand,
                 FlatAppearance = { BorderSize = 0 }
             };
+
+            // Centraliza o botão e recalcula quando o painel redimensiona
+            void CentralizarBotao()
+            {
+                int wAtual = _painelInterno.ClientSize.Width - _painelInterno.Padding.Horizontal;
+                btnSalvar.Location = new Point(Math.Max(0, (wAtual - btnSalvar.Width) / 2), y);
+            }
+            CentralizarBotao();
+            _painelInterno.Resize += (s, ev) =>
+            {
+                // Atualiza largura dos campos e posição do botão ao redimensionar
+                int wAtual = _painelInterno.ClientSize.Width - _painelInterno.Padding.Horizontal;
+                txtDescricao.Width = wAtual;
+                txtEquipamento.Width = wAtual;
+                txtAcao.Width = wAtual;
+                CentralizarBotao();
+            };
+            Add(btnSalvar);
 
             btnSalvar.Click += async (s, e) =>
             {
@@ -683,7 +891,6 @@ namespace Gerenciador_de_Ordens_de_servico
                 }
             };
 
-            panelConteudo.Controls.Add(btnSalvar);
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -697,7 +904,7 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             LimparConteudo();
 
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = "Assinar Ordem de Serviço",
                 Font = new Font("Segoe UI", 17, FontStyle.Bold),
@@ -705,7 +912,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 AutoSize = true,
                 Location = new Point(0, 0)
             });
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = $"OSCs pendentes para o setor {_usuarioLogado.Setor} — {_usuarioLogado.Nome}",
                 Font = new Font("Segoe UI", 10),
@@ -715,7 +922,7 @@ namespace Gerenciador_de_Ordens_de_servico
             });
 
             var lblLoad = new Label { Text = "⏳  Buscando...", Font = new Font("Segoe UI", 10), ForeColor = Color.Gray, AutoSize = true, Location = new Point(0, 70) };
-            panelConteudo.Controls.Add(lblLoad);
+            Add(lblLoad);
 
             var oscs = new List<OscResponse>();
             try
@@ -740,12 +947,12 @@ namespace Gerenciador_de_Ordens_de_servico
                 lblLoad.Text = $"❌  {ex.Message}"; lblLoad.ForeColor = Color.Red; return;
             }
 
-            panelConteudo.Controls.Remove(lblLoad);
+            _painelInterno.Controls.Remove(lblLoad);
             lblLoad.Dispose();
 
             if (oscs.Count == 0)
             {
-                panelConteudo.Controls.Add(new Label
+                Add(new Label
                 {
                     Text = "✅  Nenhuma OS pendente de assinatura para o seu setor.",
                     Font = new Font("Segoe UI", 12),
@@ -759,8 +966,8 @@ namespace Gerenciador_de_Ordens_de_servico
             var grid = CriarGridBase(40);
             grid.Location = new Point(0, 68);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-            grid.Width = panelConteudo.Width - 48;
-            grid.Height = panelConteudo.Height - 160;
+            grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 120;
 
             AddCol(grid, "s_id", "ID", 55);
             AddCol(grid, "s_desc", "Descrição", 180, DataGridViewAutoSizeColumnMode.Fill);
@@ -776,7 +983,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 int row = grid.Rows.Add(osc.id, osc.descricao, osc.equipamento, osc.emitenteNome, prog);
                 mapaOscs[row] = osc;
 
-                // Colorir progresso
+                // Colorir progresso — fundo claro com texto colorido
                 var cel = grid.Rows[row].Cells["s_prog"];
                 cel.Style.Font = new Font("Segoe UI", 10, FontStyle.Bold);
                 if (osc.TotalAssinaturas == 3)
@@ -785,14 +992,14 @@ namespace Gerenciador_de_Ordens_de_servico
                 { cel.Style.ForeColor = Color.FromArgb(160, 90, 0); cel.Style.BackColor = Color.FromArgb(255, 244, 205); }
             }
 
-            panelConteudo.Controls.Add(grid);
+            Add(grid);
 
             var btnAssinarOk = new Button
             {
                 Text = "✅  Assinar OS Selecionada",
                 Width = 230,
                 Height = 40,
-                Location = new Point(0, panelConteudo.Height - 60),
+                Location = new Point(0, _painelInterno.Height - _painelInterno.Padding.Vertical - 60),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 135, 75),
@@ -866,7 +1073,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 }
             };
 
-            panelConteudo.Controls.Add(btnAssinarOk);
+            Add(btnAssinarOk);
         }
 
         // Verifica se o setor do gerente logado já assinou esta OS
@@ -892,7 +1099,7 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             LimparConteudo();
 
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = "⚙️  Gerenciar OSCs",
                 Font = new Font("Segoe UI", 17, FontStyle.Bold),
@@ -900,7 +1107,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 AutoSize = true,
                 Location = new Point(0, 0)
             });
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = "OSCs ativas — Admin pode concluir (após todas assinaturas) ou cancelar qualquer OS",
                 Font = new Font("Segoe UI", 10),
@@ -910,7 +1117,7 @@ namespace Gerenciador_de_Ordens_de_servico
             });
 
             var lblLoad = new Label { Text = "⏳  Buscando...", Font = new Font("Segoe UI", 10), ForeColor = Color.Gray, AutoSize = true, Location = new Point(0, 70) };
-            panelConteudo.Controls.Add(lblLoad);
+            Add(lblLoad);
 
             var todasOscs = new List<OscResponse>();
             try
@@ -930,7 +1137,7 @@ namespace Gerenciador_de_Ordens_de_servico
             }
             catch (Exception ex) { lblLoad.Text = $"❌  {ex.Message}"; lblLoad.ForeColor = Color.Red; return; }
 
-            panelConteudo.Controls.Remove(lblLoad);
+            _painelInterno.Controls.Remove(lblLoad);
             lblLoad.Dispose();
 
             // Mostra todas as OSCs que ainda podem ser gerenciadas (ativas)
@@ -944,7 +1151,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
             if (paraValidar.Count == 0)
             {
-                panelConteudo.Controls.Add(new Label
+                Add(new Label
                 {
                     Text = "Nenhuma OS ativa no momento.",
                     Font = new Font("Segoe UI", 12),
@@ -958,8 +1165,8 @@ namespace Gerenciador_de_Ordens_de_servico
             var grid = CriarGridBase(40);
             grid.Location = new Point(0, 68);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-            grid.Width = panelConteudo.Width - 48;
-            grid.Height = panelConteudo.Height - 160;
+            grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 120;
 
             AddCol(grid, "g_id", "ID", 55);
             AddCol(grid, "g_desc", "Descrição", 180, DataGridViewAutoSizeColumnMode.Fill);
@@ -1005,6 +1212,33 @@ namespace Gerenciador_de_Ordens_de_servico
                 mapaOscs[row] = osc;
             }
 
+            // CellFormatting: força cores fixas nos botões Concluir/Cancelar
+            grid.CellFormatting += (s, ev) =>
+            {
+                if (ev.RowIndex < 0) return;
+
+                if (ev.ColumnIndex == grid.Columns["g_concluir"].Index)
+                {
+                    // Verde, mas acinzentado se a OS ainda não tem todas as assinaturas
+                    bool podeConc = mapaOscs.TryGetValue(ev.RowIndex, out var o) &&
+                                    (o.status ?? "").Equals("AguardandoValidacao", StringComparison.OrdinalIgnoreCase);
+
+                    ev.CellStyle.BackColor = podeConc ? Color.FromArgb(0, 135, 75) : Color.FromArgb(120, 140, 125);
+                    ev.CellStyle.ForeColor = Color.White;
+                    ev.CellStyle.SelectionBackColor = podeConc ? Color.FromArgb(0, 105, 58) : Color.FromArgb(95, 112, 100);
+                    ev.CellStyle.SelectionForeColor = Color.White;
+                    ev.FormattingApplied = true;
+                }
+                else if (ev.ColumnIndex == grid.Columns["g_cancelar"].Index)
+                {
+                    ev.CellStyle.BackColor = Color.FromArgb(180, 30, 30);
+                    ev.CellStyle.ForeColor = Color.White;
+                    ev.CellStyle.SelectionBackColor = Color.FromArgb(140, 20, 20);
+                    ev.CellStyle.SelectionForeColor = Color.White;
+                    ev.FormattingApplied = true;
+                }
+            };
+
             grid.CellClick += async (s, ev) =>
             {
                 if (ev.RowIndex < 0) return;
@@ -1016,29 +1250,33 @@ namespace Gerenciador_de_Ordens_de_servico
                     if (!(osc.status ?? "").Equals("AguardandoValidacao", StringComparison.OrdinalIgnoreCase))
                     {
                         MessageBox.Show(
-                            $"Não é possível concluir a OS-{osc.id:D3}." +$"Assinaturas coletadas: {osc.TotalAssinaturas}/3" +"A OS precisa de todas as 3 assinaturas antes de ser concluída.",
-                            "Não permitido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            $"Nao e possivel concluir a OS-{osc.id:D3}.\n\n" +
+                            $"Assinaturas coletadas: {osc.TotalAssinaturas}/3\n" +
+                            "A OS precisa de todas as 3 assinaturas antes de ser concluida.",
+                            "Nao permitido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
                     var confirm = MessageBox.Show(
-                        $"Concluir a OS-{osc.id:D3}?{ osc.descricao}","Confirmar Conclusão", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        $"Concluir a OS-{osc.id:D3}?\n\n{osc.descricao}",
+                        "Confirmar Conclusao", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (confirm == DialogResult.Yes)
                         await ExecutarAcaoOsc(osc.id, "concluir");
                 }
                 else if (ev.ColumnIndex == grid.Columns["g_cancelar"].Index)
                 {
-                    // Admin pode cancelar em qualquer status ativo — com ou sem assinaturas
-                    string avisoAssinaturas = osc.TotalAssinaturas > 0? $"⚠️ Esta OS já tem { osc.TotalAssinaturas}/ 3 assinatura(s)."
+                    string avisoAssinaturas = osc.TotalAssinaturas > 0
+                        ? $"\n\nEsta OS ja tem {osc.TotalAssinaturas}/3 assinatura(s)."
                         : "";
 
                     var confirm = MessageBox.Show(
-                        $"Cancelar a OS-{osc.id:D3}?Esta ação não pode ser desfeita.{ avisoAssinaturas}{ osc.descricao}","Confirmar Cancelamento", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                        $"Cancelar a OS-{osc.id:D3}?\nEsta acao nao pode ser desfeita.{avisoAssinaturas}\n\n{osc.descricao}",
+                        "Confirmar Cancelamento", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                     if (confirm == DialogResult.Yes)
                         await ExecutarAcaoOsc(osc.id, "cancelar");
                 }
             };
 
-            panelConteudo.Controls.Add(grid);
+            Add(grid);
         }
 
         // Executa PUT /osc/{id}/concluir ou PUT /osc/{id}/cancelar
@@ -1090,7 +1328,7 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             LimparConteudo();
 
-            panelConteudo.Controls.Add(new Label
+            Add(new Label
             {
                 Text = "👥  Gerenciar Usuários",
                 Font = new Font("Segoe UI", 17, FontStyle.Bold),
@@ -1104,7 +1342,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 Text = "➕  Novo Usuário",
                 Width = 160,
                 Height = 36,
-                Location = new Point(panelConteudo.Width - 210, 0),
+                Location = new Point(_painelInterno.Width - _painelInterno.Padding.Horizontal - 170, 0),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 135, 75),
@@ -1114,10 +1352,10 @@ namespace Gerenciador_de_Ordens_de_servico
                 FlatAppearance = { BorderSize = 0 }
             };
             btnNovo.Click += (s, e) => AbrirFormUsuario(null);
-            panelConteudo.Controls.Add(btnNovo);
+            Add(btnNovo);
 
             var lblLoad = new Label { Text = "⏳  Buscando usuários...", Font = new Font("Segoe UI", 11), ForeColor = Color.Gray, AutoSize = true, Location = new Point(0, 60) };
-            panelConteudo.Controls.Add(lblLoad);
+            Add(lblLoad);
 
             try
             {
@@ -1131,14 +1369,79 @@ namespace Gerenciador_de_Ordens_de_servico
             }
             catch (Exception ex) { lblLoad.Text = $"❌  {ex.Message}"; lblLoad.ForeColor = Color.Red; return; }
 
-            panelConteudo.Controls.Remove(lblLoad);
+            _painelInterno.Controls.Remove(lblLoad);
             lblLoad.Dispose();
 
+            // ── Barra de filtros ────────────────────────────────────────
+            var painelFiltrosU = new Panel
+            {
+                Location = new Point(0, 46),
+                Height = 38,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Width = _painelInterno.Width - _painelInterno.Padding.Horizontal,
+                BackColor = Color.Transparent
+            };
+
+            var txtBuscaU = new TextBox
+            {
+                Width = 240,
+                Height = 28,
+                Location = new Point(0, 4),
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(247, 250, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = "🔍  Buscar por nome ou email..."
+            };
+            painelFiltrosU.Controls.Add(txtBuscaU);
+
+            var cmbPerfilU = new ComboBox
+            {
+                Width = 160,
+                Location = new Point(248, 4),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(247, 250, 255),
+                FlatStyle = FlatStyle.Flat
+            };
+            cmbPerfilU.Items.AddRange(new object[] { "Todos os perfis", "Emitente", "Executante", "Gerente", "Administrador" });
+            cmbPerfilU.SelectedIndex = 0;
+            painelFiltrosU.Controls.Add(cmbPerfilU);
+
+            var cmbSetorU = new ComboBox
+            {
+                Width = 140,
+                Location = new Point(416, 4),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(247, 250, 255),
+                FlatStyle = FlatStyle.Flat
+            };
+            cmbSetorU.Items.AddRange(new object[] { "Todos os setores", "Qualidade", "Engenharia", "Producao", "Nenhum" });
+            cmbSetorU.SelectedIndex = 0;
+            painelFiltrosU.Controls.Add(cmbSetorU);
+
+            var btnLimparU = new Button
+            {
+                Text = "✖  Limpar",
+                Width = 90,
+                Height = 28,
+                Location = new Point(564, 4),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9),
+                BackColor = Color.FromArgb(220, 220, 225),
+                ForeColor = Color.FromArgb(60, 60, 80),
+                Cursor = Cursors.Hand,
+                FlatAppearance = { BorderSize = 0 }
+            };
+            painelFiltrosU.Controls.Add(btnLimparU);
+            Add(painelFiltrosU);
+
+            // ── Grid ─────────────────────────────────────────────────────
             var grid = CriarGridBase(40);
-            grid.Location = new Point(0, 52);
+            grid.Location = new Point(0, 90);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-            grid.Width = panelConteudo.Width - 48;
-            grid.Height = panelConteudo.Height - 100;
+            grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 98;
 
             AddCol(grid, "u_id", "ID", 50);
             AddCol(grid, "u_nome", "Nome", 200, DataGridViewAutoSizeColumnMode.Fill);
@@ -1167,8 +1470,71 @@ namespace Gerenciador_de_Ordens_de_servico
                 DefaultCellStyle = { BackColor = Color.FromArgb(180, 30, 30), ForeColor = Color.White, Font = new Font("Segoe UI", 9) }
             });
 
-            foreach (var u in todosUsuarios)
-                grid.Rows.Add(u.Id, u.Nome, u.Email, u.Perfil, u.Setor);
+            // Popula a grid com todos os usuários inicialmente
+            void PopularGridUsuarios(List<UsuarioResponse> lista)
+            {
+                grid.Rows.Clear();
+                foreach (var u in lista)
+                    grid.Rows.Add(u.Id, u.Nome, u.Email, u.Perfil, u.Setor);
+            }
+
+            PopularGridUsuarios(todosUsuarios);
+
+            // Filtro em tempo real
+            void FiltrarUsuarios()
+            {
+                string busca = txtBuscaU.Text.Trim().ToLower();
+                string perfil = cmbPerfilU.SelectedIndex == 0 ? "" : (cmbPerfilU.SelectedItem?.ToString() ?? "");
+                string setor = cmbSetorU.SelectedIndex == 0 ? "" : (cmbSetorU.SelectedItem?.ToString() ?? "");
+
+                var filtrados = todosUsuarios.Where(u =>
+                {
+                    bool passaBusca = string.IsNullOrEmpty(busca)
+                        || (u.Nome ?? "").ToLower().Contains(busca)
+                        || (u.Email ?? "").ToLower().Contains(busca);
+                    bool passaPerfil = string.IsNullOrEmpty(perfil)
+                        || (u.Perfil ?? "").Equals(perfil, StringComparison.OrdinalIgnoreCase);
+                    bool passaSetor = string.IsNullOrEmpty(setor)
+                        || (u.Setor ?? "").Equals(setor, StringComparison.OrdinalIgnoreCase);
+                    return passaBusca && passaPerfil && passaSetor;
+                }).ToList();
+
+                PopularGridUsuarios(filtrados);
+            }
+
+            txtBuscaU.TextChanged += (s, e) => FiltrarUsuarios();
+            cmbPerfilU.SelectedIndexChanged += (s, e) => FiltrarUsuarios();
+            cmbSetorU.SelectedIndexChanged += (s, e) => FiltrarUsuarios();
+            btnLimparU.Click += (s, e) =>
+            {
+                txtBuscaU.Clear();
+                cmbPerfilU.SelectedIndex = 0;
+                cmbSetorU.SelectedIndex = 0;
+            };
+
+            // CellFormatting: garante que os botões Editar/Excluir sempre tenham
+            // a mesma cor, independente de a linha ser par ou ímpar (zebra)
+            grid.CellFormatting += (s, ev) =>
+            {
+                if (ev.RowIndex < 0) return;
+
+                if (ev.ColumnIndex == grid.Columns["u_editar"].Index)
+                {
+                    ev.CellStyle.BackColor = Color.FromArgb(30, 80, 160);   // azul
+                    ev.CellStyle.ForeColor = Color.White;
+                    ev.CellStyle.SelectionBackColor = Color.FromArgb(20, 60, 130);   // azul escuro ao selecionar
+                    ev.CellStyle.SelectionForeColor = Color.White;
+                    ev.FormattingApplied = true;
+                }
+                else if (ev.ColumnIndex == grid.Columns["u_excluir"].Index)
+                {
+                    ev.CellStyle.BackColor = Color.FromArgb(180, 30, 30);   // vermelho
+                    ev.CellStyle.ForeColor = Color.White;
+                    ev.CellStyle.SelectionBackColor = Color.FromArgb(140, 20, 20);   // vermelho escuro ao selecionar
+                    ev.CellStyle.SelectionForeColor = Color.White;
+                    ev.FormattingApplied = true;
+                }
+            };
 
             grid.CellClick += async (s, ev) =>
             {
@@ -1188,7 +1554,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 }
             };
 
-            panelConteudo.Controls.Add(grid);
+            Add(grid);
         }
 
         private void AbrirFormUsuario(UsuarioResponse? usuario)
