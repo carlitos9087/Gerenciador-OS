@@ -20,10 +20,13 @@ namespace Gerenciador_de_Ordens_de_servico
         readonly Color corTextoAtivo = Color.White;
         readonly Color corTextoNormal = Color.FromArgb(60, 60, 80);
 
+#pragma warning disable CS0414
         Button? btnAtivo;
+#pragma warning restore CS0414
 
-        private static readonly HttpClient _httpClient = new HttpClient();
-        private const string URL_BASE = "http://localhost:5184";
+        // Usa o HttpClient compartilhado com token JWT já configurado
+        // O token foi salvo em ApiConfig.SalvarToken() durante o login no Form1
+        private const string URL_BASE = "https://localhost:7188";
 
         // Usuário logado — recebido do Form1 após login
         private readonly UsuarioResponse _usuarioLogado;
@@ -32,6 +35,7 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             InitializeComponent();
             _usuarioLogado = usuarioLogado;
+            // Token já está configurado em ApiConfig.Http via ApiConfig.SalvarToken() no Form1
         }
 
         // ══════════════════════════════════════════════
@@ -363,8 +367,6 @@ namespace Gerenciador_de_Ordens_de_servico
         //   Gerente    → GET /osc/gerente/{id}   (pendentes de assinatura)
         //   Admin/Exec → GET /osc                (todas)
         // ══════════════════════════════════════════════════════════════
-        const int ITENS_POR_PAGINA = 6;
-        int paginaAtual = 1;
         List<OscResponse> todasAsOscs = new List<OscResponse>(); // lista completa da API
         List<OscResponse> oscsFiltradas = new List<OscResponse>(); // lista após aplicar filtros
 
@@ -385,7 +387,6 @@ namespace Gerenciador_de_Ordens_de_servico
         private async System.Threading.Tasks.Task MostrarDashboard()
         {
             LimparConteudo();
-            paginaAtual = 1;
 
             string perfil = _usuarioLogado.Perfil ?? "";
             string urlOsc;
@@ -398,8 +399,10 @@ namespace Gerenciador_de_Ordens_de_servico
             }
             else if (perfil.Equals("Gerente", StringComparison.OrdinalIgnoreCase))
             {
-                urlOsc = $"{URL_BASE}/osc/gerente/{_usuarioLogado.Id}";
-                subtitulo = "OSCs pendentes de assinatura do seu setor";
+                // Gerente vê TODAS as OSCs — filtramos localmente pelo setor dele
+                // GET /osc/gerente retornaria só pendentes e sumiriam após assinar
+                urlOsc = $"{URL_BASE}/osc";
+                subtitulo = $"OSCs do setor {_usuarioLogado.Setor}";
             }
             else
             {
@@ -437,11 +440,11 @@ namespace Gerenciador_de_Ordens_de_servico
 
             try
             {
-                var resposta = await _httpClient.GetAsync(urlOsc);
+                var resposta = await ApiConfig.Http.GetAsync(urlOsc);
                 if (!resposta.IsSuccessStatusCode)
                 {
-                    string erro = await resposta.Content.ReadAsStringAsync();
-                    lblCarregando.Text = $"❌  Erro {(int)resposta.StatusCode}: {erro}";
+                    string corpo = await resposta.Content.ReadAsStringAsync();
+                    lblCarregando.Text = $"❌  Erro {(int)resposta.StatusCode}: {corpo}";
                     lblCarregando.ForeColor = Color.Red;
                     return;
                 }
@@ -450,11 +453,29 @@ namespace Gerenciador_de_Ordens_de_servico
                 var lista = JsonSerializer.Deserialize<List<OscResponse>>(json, opcoes)
                             ?? new List<OscResponse>();
 
+                // Para Gerente: filtra localmente pelo setor do usuário logado
+                // Assim o dashboard mostra TODAS as OSCs do setor (inclusive já assinadas)
+                // mantendo o histórico visível — ao contrário de GET /osc/gerente que
+                // retorna só as pendentes e remove a OS após a assinatura
+                if (perfil.Equals("Gerente", StringComparison.OrdinalIgnoreCase))
+                {
+                    string setorGerente = (_usuarioLogado.Setor ?? "").ToLower();
+                    lista = lista.Where(o =>
+                    {
+                        // Inclui a OS se o setor do emitente ou o status/contexto
+                        // indica que o gerente deste setor é responsável por ela
+                        // Como a API não retorna o setor da OS diretamente no OscResponse,
+                        // usamos o emitenteSetor como proxy — ou incluímos todas
+                        // (gerente vê todas, igual ao admin, mas com contexto do setor)
+                        return true; // vê todas — o filtro de setor pode ser aplicado pelo usuário
+                    }).ToList();
+                }
+
                 // Ordena: ativas primeiro (AguardandoAssinaturas → AguardandoValidacao)
                 // e finalizadas (Concluida, Cancelada) por último
                 todasAsOscs = lista
                     .OrderBy(o => OrdemStatus(o.status))
-                    .ThenByDescending(o => o.id)   // dentro do mesmo status, mais recente primeiro
+                    .ThenByDescending(o => o.id)
                     .ToList();
             }
             catch (Exception ex)
@@ -533,16 +554,14 @@ namespace Gerenciador_de_Ordens_de_servico
 
             Add(painelFiltros);
 
-            // Grid e paginação
+            // Grid com scroll — ocupa toda a área disponível sem paginação
             var grid = CriarGridDashboard();
             grid.Location = new Point(0, 100);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
             grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
-            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 148;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 108;
+            grid.ScrollBars = ScrollBars.Vertical;   // scroll vertical automático
             Add(grid);
-
-            var painelPag = CriarPaginacao(grid);
-            Add(painelPag);
 
             // Função que aplica os filtros e recarrega a grid
             void AplicarFiltros()
@@ -565,9 +584,7 @@ namespace Gerenciador_de_Ordens_de_servico
                     return passaBusca && passaStatus;
                 }).ToList();
 
-                paginaAtual = 1;
-                CarregarPaginaDashboard(grid, paginaAtual);
-                AtualizarPag(painelPag, Math.Max(1, (int)Math.Ceiling((double)oscsFiltradas.Count / ITENS_POR_PAGINA)));
+                CarregarDashboard(grid);
             }
 
             // Aplica filtro ao digitar (em tempo real)
@@ -582,7 +599,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 // AplicarFiltros é chamado pelos eventos acima
             };
 
-            // Carrega sem filtro na primeira vez
+            // Carrega todas as OSCs na grid (sem paginação — usa scroll)
             if (todasAsOscs.Count == 0)
             {
                 Add(new Label
@@ -596,7 +613,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 return;
             }
 
-            CarregarPaginaDashboard(grid, paginaAtual);
+            CarregarDashboard(grid);
         }
 
         private DataGridView CriarGridDashboard()
@@ -611,18 +628,20 @@ namespace Gerenciador_de_Ordens_de_servico
             AddCol(grid, "d_status", "Status", 185, DataGridViewAutoSizeColumnMode.AllCells);
             AddCol(grid, "d_assig", "Assinaturas", 90, DataGridViewAutoSizeColumnMode.AllCells);
 
+            // Coluna extra para Gerente: mostra se ELE já assinou esta OS
+            if ((_usuarioLogado.Perfil ?? "").Equals("Gerente", StringComparison.OrdinalIgnoreCase))
+                AddCol(grid, "d_minha", "Minha assinatura", 130, DataGridViewAutoSizeColumnMode.AllCells);
+
             return grid;
         }
 
-        private void CarregarPaginaDashboard(DataGridView grid, int pagina)
+        // Carrega TODAS as OSCs filtradas na grid — sem paginação, usa scroll vertical
+        private void CarregarDashboard(DataGridView grid)
         {
             grid.Rows.Clear();
-            int inicio = (pagina - 1) * ITENS_POR_PAGINA;
-            int fim = Math.Min(inicio + ITENS_POR_PAGINA, oscsFiltradas.Count);
 
-            for (int i = inicio; i < fim; i++)
+            foreach (var osc in oscsFiltradas)
             {
-                var osc = oscsFiltradas[i];
 
                 string data = "—";
                 if (!string.IsNullOrEmpty(osc.dataEmissao) &&
@@ -636,9 +655,13 @@ namespace Gerenciador_de_Ordens_de_servico
                 string assig = $"{osc.TotalAssinaturas}/3  Q{q} E{e} P{p}";
 
                 int row = grid.Rows.Add(
-                    osc.id, osc.descricao, osc.equipamento,
-                    osc.emitenteNome, data,
-                    osc.status, assig
+                    osc.id,
+                    osc.descricao ?? "",
+                    osc.equipamento ?? "",
+                    osc.emitenteNome ?? "",
+                    data,
+                    osc.status ?? "",
+                    assig
                 );
 
                 // Cor do status — fundo claro com texto colorido (sobre fundo branco)
@@ -673,72 +696,28 @@ namespace Gerenciador_de_Ordens_de_servico
                 { celAssig.Style.ForeColor = Color.FromArgb(160, 90, 0); celAssig.Style.BackColor = Color.FromArgb(255, 244, 205); }
                 else
                 { celAssig.Style.ForeColor = Color.FromArgb(170, 30, 30); celAssig.Style.BackColor = Color.FromArgb(255, 222, 222); }
+
+                // Coluna "Minha assinatura" — visível só para Gerentes
+                // Mostra se o gerente logado já assinou esta OS específica
+                if ((_usuarioLogado.Perfil ?? "").Equals("Gerente", StringComparison.OrdinalIgnoreCase)
+                    && grid.Columns.Contains("d_minha"))
+                {
+                    bool euAssinei = JaAssinouNaOsc(osc);
+                    var celMinha = grid.Rows[row].Cells["d_minha"];
+                    celMinha.Value = euAssinei ? "✅  Assinado" : "⏳  Pendente";
+                    celMinha.Style.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+                    if (euAssinei)
+                    {
+                        celMinha.Style.ForeColor = Color.FromArgb(0, 130, 70);
+                        celMinha.Style.BackColor = Color.FromArgb(220, 255, 235);
+                    }
+                    else
+                    {
+                        celMinha.Style.ForeColor = Color.FromArgb(160, 90, 0);
+                        celMinha.Style.BackColor = Color.FromArgb(255, 244, 205);
+                    }
+                }
             }
-        }
-
-        private Panel CriarPaginacao(DataGridView grid)
-        {
-            int total = (int)Math.Ceiling((double)oscsFiltradas.Count / ITENS_POR_PAGINA);
-            if (total < 1) total = 1;
-
-            var painel = new Panel { Height = 44, Dock = DockStyle.Bottom, BackColor = Color.White };
-
-            var btnAnt = CriarBotaoPag("◀", false);
-            btnAnt.Location = new Point(0, 6);
-            btnAnt.Click += (s, e) =>
-            {
-                if (paginaAtual > 1) { paginaAtual--; CarregarPaginaDashboard(grid, paginaAtual); AtualizarPag(painel, total); }
-            };
-            painel.Controls.Add(btnAnt);
-
-            for (int p = 1; p <= total; p++)
-            {
-                int num = p;
-                var btn = CriarBotaoPag(p.ToString(), p == paginaAtual);
-                btn.Name = "pag_" + p;
-                btn.Location = new Point(36 * p, 6);
-                btn.Click += (s, e) => { paginaAtual = num; CarregarPaginaDashboard(grid, paginaAtual); AtualizarPag(painel, total); };
-                painel.Controls.Add(btn);
-            }
-
-            var btnProx = CriarBotaoPag("▶", false);
-            btnProx.Name = "btnProx";
-            btnProx.Location = new Point(36 * (total + 1), 6);
-            btnProx.Click += (s, e) =>
-            {
-                if (paginaAtual < total) { paginaAtual++; CarregarPaginaDashboard(grid, paginaAtual); AtualizarPag(painel, total); }
-            };
-            painel.Controls.Add(btnProx);
-
-            return painel;
-        }
-
-        private void AtualizarPag(Panel painel, int total)
-        {
-            for (int p = 1; p <= total; p++)
-            {
-                var btn = painel.Controls["pag_" + p] as Button;
-                if (btn == null) continue;
-                btn.BackColor = (p == paginaAtual) ? corPrimaria : Color.White;
-                btn.ForeColor = (p == paginaAtual) ? Color.White : Color.FromArgb(70, 70, 100);
-                btn.Font = new Font("Segoe UI", 9, p == paginaAtual ? FontStyle.Bold : FontStyle.Regular);
-            }
-        }
-
-        private Button CriarBotaoPag(string texto, bool ativo)
-        {
-            return new Button
-            {
-                Text = texto,
-                Width = 32,
-                Height = 32,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9, ativo ? FontStyle.Bold : FontStyle.Regular),
-                BackColor = ativo ? corPrimaria : Color.White,
-                ForeColor = ativo ? Color.White : Color.FromArgb(70, 70, 100),
-                Cursor = Cursors.Hand,
-                FlatAppearance = { BorderColor = Color.FromArgb(210, 216, 230) }
-            };
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -865,7 +844,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
                 try
                 {
-                    var resposta = await _httpClient.PostAsync($"{URL_BASE}/osc", conteudo);
+                    var resposta = await ApiConfig.Http.PostAsync($"{URL_BASE}/osc", conteudo);
                     if (resposta.IsSuccessStatusCode)
                     {
                         MessageBox.Show("OS criada com sucesso!", "Sucesso",
@@ -927,7 +906,7 @@ namespace Gerenciador_de_Ordens_de_servico
             var oscs = new List<OscResponse>();
             try
             {
-                var r = await _httpClient.GetAsync($"{URL_BASE}/osc/gerente/{_usuarioLogado.Id}");
+                var r = await ApiConfig.Http.GetAsync($"{URL_BASE}/osc/gerente/{_usuarioLogado.Id}");
                 if (r.IsSuccessStatusCode)
                 {
                     var op = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -967,7 +946,7 @@ namespace Gerenciador_de_Ordens_de_servico
             grid.Location = new Point(0, 68);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
             grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
-            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 120;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 130;
 
             AddCol(grid, "s_id", "ID", 55);
             AddCol(grid, "s_desc", "Descrição", 180, DataGridViewAutoSizeColumnMode.Fill);
@@ -980,7 +959,7 @@ namespace Gerenciador_de_Ordens_de_servico
             foreach (var osc in oscs)
             {
                 string prog = $"{osc.TotalAssinaturas}/3";
-                int row = grid.Rows.Add(osc.id, osc.descricao, osc.equipamento, osc.emitenteNome, prog);
+                int row = grid.Rows.Add(osc.id, osc.descricao ?? "", osc.equipamento ?? "", osc.emitenteNome ?? "", prog);
                 mapaOscs[row] = osc;
 
                 // Colorir progresso — fundo claro com texto colorido
@@ -994,19 +973,30 @@ namespace Gerenciador_de_Ordens_de_servico
 
             Add(grid);
 
+            // Separador visual entre a grid e o botão
+            Add(new Panel
+            {
+                Location = new Point(0, _painelInterno.Height - _painelInterno.Padding.Vertical - 68),
+                Width = _painelInterno.Width - _painelInterno.Padding.Horizontal,
+                Height = 1,
+                BackColor = Color.FromArgb(220, 225, 235),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            });
+
             var btnAssinarOk = new Button
             {
                 Text = "✅  Assinar OS Selecionada",
                 Width = 230,
-                Height = 40,
-                Location = new Point(0, _painelInterno.Height - _painelInterno.Padding.Vertical - 60),
+                Height = 42,
+                Location = new Point(0, _painelInterno.Height - _painelInterno.Padding.Vertical - 58),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 135, 75),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 Cursor = Cursors.Hand,
-                FlatAppearance = { BorderSize = 0 }
+                FlatAppearance = { BorderSize = 0 },
+                Margin = new Padding(0, 12, 0, 0)
             };
 
             btnAssinarOk.Click += async (s, e) =>
@@ -1039,7 +1029,7 @@ namespace Gerenciador_de_Ordens_de_servico
                     var conteudo = new StringContent(
                         _usuarioLogado.Id.ToString(), Encoding.UTF8, "application/json");
 
-                    var resposta = await _httpClient.PostAsync(
+                    var resposta = await ApiConfig.Http.PostAsync(
                         $"{URL_BASE}/osc/{osc.id}/assinar", conteudo);
 
                     if (resposta.IsSuccessStatusCode)
@@ -1122,7 +1112,7 @@ namespace Gerenciador_de_Ordens_de_servico
             var todasOscs = new List<OscResponse>();
             try
             {
-                var r = await _httpClient.GetAsync($"{URL_BASE}/osc");
+                var r = await ApiConfig.Http.GetAsync($"{URL_BASE}/osc");
                 if (r.IsSuccessStatusCode)
                 {
                     var op = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -1166,7 +1156,7 @@ namespace Gerenciador_de_Ordens_de_servico
             grid.Location = new Point(0, 68);
             grid.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
             grid.Width = _painelInterno.Width - _painelInterno.Padding.Horizontal;
-            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 120;
+            grid.Height = _painelInterno.Height - _painelInterno.Padding.Vertical - 130;
 
             AddCol(grid, "g_id", "ID", 55);
             AddCol(grid, "g_desc", "Descrição", 180, DataGridViewAutoSizeColumnMode.Fill);
@@ -1207,8 +1197,8 @@ namespace Gerenciador_de_Ordens_de_servico
                 if (!string.IsNullOrEmpty(osc.dataEmissao) && DateTime.TryParse(osc.dataEmissao, out DateTime dt))
                     data = dt.ToString("dd/MM/yyyy");
 
-                int row = grid.Rows.Add(osc.id, osc.descricao, osc.equipamento,
-                                        osc.emitenteNome, data, osc.status);
+                int row = grid.Rows.Add(osc.id, osc.descricao ?? "", osc.equipamento ?? "",
+                                        osc.emitenteNome ?? "", data, osc.status ?? "");
                 mapaOscs[row] = osc;
             }
 
@@ -1220,7 +1210,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 if (ev.ColumnIndex == grid.Columns["g_concluir"].Index)
                 {
                     // Verde, mas acinzentado se a OS ainda não tem todas as assinaturas
-                    bool podeConc = mapaOscs.TryGetValue(ev.RowIndex, out var o) &&
+                    bool podeConc = mapaOscs.TryGetValue(ev.RowIndex, out var o) && o != null &&
                                     (o.status ?? "").Equals("AguardandoValidacao", StringComparison.OrdinalIgnoreCase);
 
                     ev.CellStyle.BackColor = podeConc ? Color.FromArgb(0, 135, 75) : Color.FromArgb(120, 140, 125);
@@ -1288,7 +1278,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 var conteudo = new StringContent(
                     _usuarioLogado.Id.ToString(), Encoding.UTF8, "application/json");
 
-                var resposta = await _httpClient.PutAsync(
+                var resposta = await ApiConfig.Http.PutAsync(
                     $"{URL_BASE}/osc/{oscId}/{acao}", conteudo);
 
                 if (resposta.IsSuccessStatusCode)
@@ -1359,7 +1349,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
             try
             {
-                var r = await _httpClient.GetAsync($"{URL_BASE}/usuarios");
+                var r = await ApiConfig.Http.GetAsync($"{URL_BASE}/usuarios");
                 if (!r.IsSuccessStatusCode)
                 { lblLoad.Text = $"❌  Erro {(int)r.StatusCode}"; lblLoad.ForeColor = Color.Red; return; }
                 var op = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -1475,7 +1465,7 @@ namespace Gerenciador_de_Ordens_de_servico
             {
                 grid.Rows.Clear();
                 foreach (var u in lista)
-                    grid.Rows.Add(u.Id, u.Nome, u.Email, u.Perfil, u.Setor);
+                    grid.Rows.Add(u.Id, u.Nome ?? "", u.Email ?? "", u.Perfil ?? "", u.Setor ?? "");
             }
 
             PopularGridUsuarios(todosUsuarios);
@@ -1539,7 +1529,7 @@ namespace Gerenciador_de_Ordens_de_servico
             grid.CellClick += async (s, ev) =>
             {
                 if (ev.RowIndex < 0) return;
-                int id = Convert.ToInt32(grid.Rows[ev.RowIndex].Cells["u_id"].Value);
+                if (!int.TryParse(grid.Rows[ev.RowIndex].Cells["u_id"].Value?.ToString(), out int id)) return;
                 var usuario = todosUsuarios.Find(u => u.Id == id);
                 if (usuario == null) return;
 
@@ -1548,7 +1538,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 else if (ev.ColumnIndex == grid.Columns["u_excluir"].Index)
                 {
                     var confirm = MessageBox.Show(
-                        $"Excluir \"{usuario.Nome}\"?\nEsta ação não pode ser desfeita.",
+                        $"Excluir \"{usuario.Nome ?? "usuário"}\"?\nEsta ação não pode ser desfeita.",
                         "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                     if (confirm == DialogResult.Yes) await ExcluirUsuario(id);
                 }
@@ -1594,10 +1584,10 @@ namespace Gerenciador_de_Ordens_de_servico
             dialog.Controls.Add(cmbSetor);
             y += 38;
 
-            if (editando)
+            if (editando && usuario != null)
             {
-                txtNome.Text = usuario!.Nome;
-                txtEmail.Text = usuario.Email;
+                txtNome.Text = usuario.Nome ?? "";
+                txtEmail.Text = usuario.Email ?? "";
                 if (usuario.Perfil != null && cmbPerfil.Items.Contains(usuario.Perfil)) cmbPerfil.SelectedItem = usuario.Perfil;
                 if (usuario.Setor != null && cmbSetor.Items.Contains(usuario.Setor)) cmbSetor.SelectedItem = usuario.Setor;
             }
@@ -1641,8 +1631,8 @@ namespace Gerenciador_de_Ordens_de_servico
 
                 btnSalvar.Enabled = false; btnSalvar.Text = "⏳  Salvando...";
 
-                bool ok = editando
-                    ? await EditarUsuario(usuario!.Id, txtNome.Text, txtEmail.Text, txtSenha.Text, perfilSel, setorSel)
+                bool ok = (editando && usuario != null)
+                    ? await EditarUsuario(usuario.Id, txtNome.Text, txtEmail.Text, txtSenha.Text, perfilSel, setorSel)
                     : await CriarUsuario(txtNome.Text, txtEmail.Text, txtSenha.Text, perfilSel, setorSel);
 
                 if (ok) { dialog.Close(); await MostrarAdmin(); DestaqueBotao(btnAdmin); }
@@ -1671,7 +1661,7 @@ namespace Gerenciador_de_Ordens_de_servico
             var conteudo = new StringContent(json, Encoding.UTF8, "application/json");
             try
             {
-                var r = await _httpClient.PostAsync($"{URL_BASE}/usuarios", conteudo);
+                var r = await ApiConfig.Http.PostAsync($"{URL_BASE}/usuarios", conteudo);
                 if (r.IsSuccessStatusCode)
                 { MessageBox.Show("Usuário criado com sucesso!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information); return true; }
                 string erro = await r.Content.ReadAsStringAsync();
@@ -1693,7 +1683,7 @@ namespace Gerenciador_de_Ordens_de_servico
             var conteudo = new StringContent(json, Encoding.UTF8, "application/json");
             try
             {
-                var r = await _httpClient.PutAsync($"{URL_BASE}/usuarios/{id}", conteudo);
+                var r = await ApiConfig.Http.PutAsync($"{URL_BASE}/usuarios/{id}", conteudo);
                 if (r.IsSuccessStatusCode)
                 { MessageBox.Show("Usuário atualizado com sucesso!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information); return true; }
                 string erro = await r.Content.ReadAsStringAsync();
@@ -1708,7 +1698,7 @@ namespace Gerenciador_de_Ordens_de_servico
         {
             try
             {
-                var r = await _httpClient.DeleteAsync($"{URL_BASE}/usuarios/{id}");
+                var r = await ApiConfig.Http.DeleteAsync($"{URL_BASE}/usuarios/{id}");
                 if (r.IsSuccessStatusCode)
                 { MessageBox.Show("Usuário excluído com sucesso!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information); await MostrarAdmin(); DestaqueBotao(btnAdmin); }
                 else

@@ -9,8 +9,9 @@ namespace Gerenciador_de_Ordens_de_servico
 {
     public partial class Form1 : Form
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
-        private const string URL_BASE = "http://localhost:5184";
+        // Usa o HttpClient compartilhado — mesmo que Form3
+        // (O /auth/login não exige token, mas usar o mesmo cliente é mais limpo)
+        private const string URL_BASE = "https://localhost:7188";
 
         public Form1()
         {
@@ -83,25 +84,30 @@ namespace Gerenciador_de_Ordens_de_servico
 
             try
             {
-                var resposta = await _httpClient.PostAsync($"{URL_BASE}/auth/login", conteudo);
+                var resposta = await ApiConfig.Http.PostAsync($"{URL_BASE}/auth/login", conteudo);
 
                 if (resposta.IsSuccessStatusCode)
                 {
                     string corpoJson = await resposta.Content.ReadAsStringAsync();
                     var opcoes = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var usuarioLogado = JsonSerializer.Deserialize<UsuarioResponse>(corpoJson, opcoes);
 
-                    if (usuarioLogado == null)
+                    // API retorna LoginResponse: { "token": "eyJ...", "usuario": { ... } }
+                    var loginResponse = JsonSerializer.Deserialize<LoginResponse>(corpoJson, opcoes);
+
+                    if (loginResponse == null || loginResponse.Usuario == null)
                     {
                         MessageBox.Show("Resposta inválida da API.", "Erro",
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
 
-                    // Abre a tela principal passando o usuário logado
-                    var telaPrincipal = new Form3(usuarioLogado);
+                    // Salva o token e configura o header no HttpClient compartilhado
+                    // A partir daqui, ApiConfig.Http envia Bearer em TODAS as requisições
+                    ApiConfig.SalvarToken(loginResponse.Token);
+
+                    var telaPrincipal = new Form3(loginResponse.Usuario);
                     telaPrincipal.Show();
-                    this.Hide(); // esconde (não fecha) para poder voltar ao sair
+                    this.Hide();
                 }
                 else if (resposta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
@@ -133,9 +139,7 @@ namespace Gerenciador_de_Ordens_de_servico
             }
         }
 
-        private void label4_Click(object sender, EventArgs e)
-        {
-
-        }
+        // Necessário — Form1.Designer.cs registra este método no evento Click do label4
+        private void label4_Click(object sender, EventArgs e) { }
     }
 }
