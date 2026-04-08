@@ -19,39 +19,6 @@ namespace Gerenciador_de_Ordens_de_servico
             InitializeComponent();
         }
 
-        //private void Form1_Load(object sender, EventArgs e)
-        //{
-        //    this.Text = "Login - Gerenciador de OS";
-        //    this.Size = new Size(1100, 700);
-        //    this.MinimumSize = new Size(1000, 600);
-        //    this.StartPosition = FormStartPosition.CenterScreen;
-        //    this.FormBorderStyle = FormBorderStyle.Sizable;
-        //    this.MaximizeBox = true;
-
-        //    // Mascara a senha com asteriscos
-        //    textBox2.PasswordChar = '*';
-
-        //    // Pressionar Enter no campo senha também loga
-        //    textBox2.KeyDown += (s, ev) =>
-        //    {
-        //        if (ev.KeyCode == Keys.Enter)
-        //            _ = FazerLogin();
-        //    };
-
-        //    // Quando o Form1 volta a aparecer (usuário saiu do Form3),
-        //    // limpa os campos para nova sessão
-        //    this.VisibleChanged += (s, ev) =>
-        //    {
-        //        if (this.Visible)
-        //        {
-        //            textBox1.Clear();
-        //            textBox2.Clear();
-        //            textBox1.Focus();
-        //            button1.Enabled = true;
-        //            button1.Text = "Entrar";
-        //        }
-        //    };
-        //}
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -108,6 +75,9 @@ namespace Gerenciador_de_Ordens_de_servico
             // ── Panel2 arredondado com sombra ──────────────────────
             panel2.Paint += Panel2_Paint;
             panel2.BackColor = Color.White;
+
+
+
         }
 
         // Evento do botão de login
@@ -233,26 +203,48 @@ namespace Gerenciador_de_Ordens_de_servico
 
         private void pictureBox2_Click(object sender, EventArgs e)
         {
-            // Verifica se a senha está oculta (usando o caractere de sistema)
-            if (textBox2.UseSystemPasswordChar)
-            {
-                // MOSTRAR SENHA
-                textBox2.UseSystemPasswordChar = false;
+            string pasta = @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\";
 
-                // Carrega a imagem "view" (olho aberto)
-                pictureBox2.Image = Image.FromFile(@"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\view.png");
+            if (textBox2.PasswordChar == '*')
+            {
+                textBox2.PasswordChar = '\0';
+                pictureBox2.Image = Image.FromFile(pasta + "view.png");
             }
             else
             {
-                // OCULTAR SENHA
-                textBox2.UseSystemPasswordChar = true;
-
-                // Carrega a imagem "hide" (olho fechado)
-                pictureBox2.Image = Image.FromFile(@"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\hide.png");
+                textBox2.PasswordChar = '*';
+                pictureBox2.Image = Image.FromFile(pasta + "hide.png");
             }
         }
 
+        //private void pictureBox2_Click(object sender, EventArgs e)
+        //{
+        //    // Caminho das imagens relativo à pasta onde o .exe está rodando
+        //    string pathView = Application.StartupPath + @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\view.png";
+        //    string pathHide = Application.StartupPath + @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\hide.png";
+
+        //    if (textBox2.PasswordChar == '*')
+        //    {
+        //        // MOSTRAR SENHA
+        //        textBox2.PasswordChar = '\0'; // '\0' limpa a máscara e mostra o texto
+        //        if (System.IO.File.Exists(pathView))
+        //            pictureBox2.Image = Image.FromFile(pathView);
+        //    }
+        //    else
+        //    {
+        //        // OCULTAR SENHA
+        //        textBox2.PasswordChar = '*';
+        //        if (System.IO.File.Exists(pathHide))
+        //            pictureBox2.Image = Image.FromFile(pathHide);
+        //    }
+        //}
+
         private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
         {
 
         }
