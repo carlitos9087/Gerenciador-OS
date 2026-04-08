@@ -702,212 +702,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 }
             }
         }
-        // ══════════════════════════════════════════════════════════════
-        // GRÁFICOS DO DASHBOARD
-        // Exibe um painel horizontal com dois charts:
-        //   • Pizza  → distribuição por status
-        //   • Barras → progresso de assinaturas (0 / 1–2 / 3)
-        // ══════════════════════════════════════════════════════════════
-        //    private Panel CriarPainelGraficos(List<OscResponse> lista)
-        //    {
-        //        // Painel contenedor — faixa horizontal
-        //        var painel = new Panel
-        //        {
-        //            Height = 220,
-        //            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-        //            BackColor = Color.Transparent
-        //        };
 
-        //        // ── GRÁFICO 1: Pizza por status ─────────────────────────────
-        //        var chartPizza = new Chart
-        //        {
-        //            Width = 340,
-        //            Height = 210,
-        //            Location = new Point(0, 0),
-        //            BackColor = Color.White
-        //        };
-        //        chartPizza.Titles.Add(new Title("Status das OSs")
-        //        {
-        //            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-        //            ForeColor = Color.FromArgb(25, 35, 70)
-        //        });
-
-        //        var areaPizza = new ChartArea("pizza");
-        //        areaPizza.BackColor = Color.White;
-        //        chartPizza.ChartAreas.Add(areaPizza);
-
-        //        var seriePizza = new Series("status")
-        //        {
-        //            ChartType = SeriesChartType.Pie,
-        //            IsValueShownAsLabel = true,
-        //            LabelFormat = "{0} ({P0})",
-        //            Font = new Font("Segoe UI", 8)
-        //        };
-
-        //        // Conta por status
-        //        var porStatus = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-        //{
-        //    { "AguardandoAssinaturas", 0 },
-        //    { "AguardandoValidacao",   0 },
-        //    { "Concluida",             0 },
-        //    { "Cancelada",             0 }
-        //};
-        //        foreach (var o in lista)
-        //        {
-        //            string s = o.status ?? "Desconhecido";
-        //            if (porStatus.ContainsKey(s)) porStatus[s]++;
-        //            else porStatus[s] = 1;
-        //        }
-
-        //        // Labels mais legíveis para a pizza
-        //        var labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        //{
-        //    { "AguardandoAssinaturas", "Ag. Assinaturas" },
-        //    { "AguardandoValidacao",   "Ag. Validação"   },
-        //    { "Concluida",             "Concluída"        },
-        //    { "Cancelada",             "Cancelada"        }
-        //};
-        //        var cores = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
-        //{
-        //    { "AguardandoAssinaturas", Color.FromArgb(255, 195,  60) },  // amarelo
-        //    { "AguardandoValidacao",   Color.FromArgb( 60, 130, 210) },  // azul
-        //    { "Concluida",             Color.FromArgb( 40, 170,  90) },  // verde
-        //    { "Cancelada",             Color.FromArgb(210,  60,  60) }   // vermelho
-        //};
-
-        //        foreach (var kv in porStatus)
-        //        {
-        //            if (kv.Value == 0) continue;
-        //            string lbl = labels.TryGetValue(kv.Key, out var l) ? l : kv.Key;
-        //            int idx = seriePizza.Points.AddXY(lbl, kv.Value);
-        //            if (cores.TryGetValue(kv.Key, out var cor))
-        //                seriePizza.Points[idx].Color = cor;
-        //        }
-
-        //        // Se não houver dados, mostra placeholder
-        //        if (seriePizza.Points.Count == 0)
-        //            seriePizza.Points.AddXY("Sem dados", 1);
-
-        //        chartPizza.Series.Add(seriePizza);
-        //        chartPizza.Legends.Clear();  // legenda está nos rótulos da própria fatia
-        //        painel.Controls.Add(chartPizza);
-
-        //        // ── GRÁFICO 2: Barras — assinaturas coletadas ───────────────
-        //        var chartBarras = new Chart
-        //        {
-        //            Width = 340,
-        //            Height = 210,
-        //            Location = new Point(356, 0),
-        //            BackColor = Color.White
-        //        };
-        //        chartBarras.Titles.Add(new Title("Progresso de Assinaturas")
-        //        {
-        //            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-        //            ForeColor = Color.FromArgb(25, 35, 70)
-        //        });
-
-        //        var areaBarras = new ChartArea("barras");
-        //        areaBarras.BackColor = Color.White;
-        //        areaBarras.AxisX.MajorGrid.Enabled = false;
-        //        areaBarras.AxisY.MajorGrid.LineColor = Color.FromArgb(220, 225, 235);
-        //        areaBarras.AxisY.Minimum = 0;
-        //        areaBarras.AxisY.Interval = 1;
-        //        chartBarras.ChartAreas.Add(areaBarras);
-
-        //        var serieBarras = new Series("assinaturas")
-        //        {
-        //            ChartType = SeriesChartType.Column,
-        //            IsValueShownAsLabel = true,
-        //            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-        //            Color = Color.FromArgb(30, 80, 160)
-        //        };
-
-        //        int s0 = lista.Count(o => o.TotalAssinaturas == 0);
-        //        int s1 = lista.Count(o => o.TotalAssinaturas == 1);
-        //        int s2 = lista.Count(o => o.TotalAssinaturas == 2);
-        //        int s3 = lista.Count(o => o.TotalAssinaturas == 3);
-
-        //        serieBarras.Points.AddXY("0 de 3", s0); serieBarras.Points[0].Color = Color.FromArgb(210, 60, 60);
-        //        serieBarras.Points.AddXY("1 de 3", s1); serieBarras.Points[1].Color = Color.FromArgb(210, 130, 40);
-        //        serieBarras.Points.AddXY("2 de 3", s2); serieBarras.Points[2].Color = Color.FromArgb(255, 195, 60);
-        //        serieBarras.Points.AddXY("3 de 3", s3); serieBarras.Points[3].Color = Color.FromArgb(40, 170, 90);
-
-        //        chartBarras.Series.Add(serieBarras);
-        //        chartBarras.Legends.Clear();
-        //        painel.Controls.Add(chartBarras);
-
-        //        // ── GRÁFICO 3: Barra empilhada — total geral (card resumo) ──
-        //        var painelCard = new Panel
-        //        {
-        //            Width = 220,
-        //            Height = 210,
-        //            Location = new Point(712, 0),
-        //            BackColor = Color.White,
-        //            BorderStyle = BorderStyle.None
-        //        };
-
-        //        // Sombra suave via Paint
-        //        painelCard.Paint += (s, ev) =>
-        //        {
-        //            ev.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        //            var rect = new Rectangle(1, 1, painelCard.Width - 3, painelCard.Height - 3);
-        //            using var brush = new SolidBrush(Color.White);
-        //            ev.Graphics.FillRectangle(brush, rect);
-        //            using var pen = new Pen(Color.FromArgb(220, 225, 235), 1);
-        //            ev.Graphics.DrawRectangle(pen, rect);
-        //        };
-
-        //        // Cards de contagem por status dentro desse painel
-        //        int yCard = 14;
-        //        var cardsInfo = new (string Label, int Valor, Color Cor)[]
-        //        {
-        //    ("Total de OSs",          lista.Count,                              Color.FromArgb(25, 35, 70)      ),
-        //    ("Ag. Assinaturas",       porStatus.GetValueOrDefault("AguardandoAssinaturas"), Color.FromArgb(160, 90, 0)   ),
-        //    ("Ag. Validação",         porStatus.GetValueOrDefault("AguardandoValidacao"),   Color.FromArgb(30, 80, 160) ),
-        //    ("Concluídas",            porStatus.GetValueOrDefault("Concluida"),              Color.FromArgb(0, 130, 70)  ),
-        //    ("Canceladas",            porStatus.GetValueOrDefault("Cancelada"),              Color.FromArgb(170, 30, 30) ),
-        //        };
-
-        //        painelCard.Controls.Add(new Label
-        //        {
-        //            Text = "Resumo",
-        //            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-        //            ForeColor = Color.FromArgb(25, 35, 70),
-        //            AutoSize = true,
-        //            Location = new Point(12, yCard)
-        //        });
-        //        yCard += 28;
-
-        //        foreach (var (lbl, val, cor) in cardsInfo)
-        //        {
-        //            painelCard.Controls.Add(new Label
-        //            {
-        //                Text = lbl,
-        //                Font = new Font("Segoe UI", 8),
-        //                ForeColor = Color.Gray,
-        //                AutoSize = true,
-        //                Location = new Point(12, yCard)
-        //            });
-        //            painelCard.Controls.Add(new Label
-        //            {
-        //                Text = val.ToString(),
-        //                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-        //                ForeColor = cor,
-        //                AutoSize = true,
-        //                Location = new Point(150, yCard - 4)
-        //            });
-        //            yCard += 30;
-        //        }
-
-        //        painel.Controls.Add(painelCard);
-
-        //        return painel;
-        //    }
-        // ══════════════════════════════════════════════════════════════
-        // GRÁFICOS DO DASHBOARD — desenhados com GDI+ puro
-        // Sem dependência de System.Windows.Forms.DataVisualization
-        // ══════════════════════════════════════════════════════════════
-        // Agora recebe um Func<List<OscResponse>> para poder ser redesenhado com filtros
         private Panel CriarPainelGraficos(Func<List<OscResponse>> obterLista)
         {
             var porStatus = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -1019,33 +814,132 @@ namespace Gerenciador_de_Ordens_de_servico
     };
 
             var pnlBarras = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(6, 0, 6, 0) };
+            //    pnlBarras.Paint += (s, ev) =>
+            //    {
+            //        var lista = obterLista();
+            //        int[] barVals = {
+            //    lista.Count(o => o.TotalAssinaturas == 0),
+            //    lista.Count(o => o.TotalAssinaturas == 1),
+            //    lista.Count(o => o.TotalAssinaturas == 2),
+            //    lista.Count(o => o.TotalAssinaturas == 3)
+            //};
+
+            //        var g = ev.Graphics;
+            //        g.SmoothingMode = SmoothingMode.AntiAlias;
+            //        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            //        using var fTit = new Font("Segoe UI", 10, FontStyle.Bold);
+            //        g.DrawString("Progresso de Assinaturas", fTit, new SolidBrush(Color.FromArgb(25, 35, 70)), 8, 8);
+
+            //        int W = pnlBarras.Width;
+            //        int H = pnlBarras.Height;
+            //        int maxVal = Math.Max(1, barVals.Max());
+            //        int chartX = 32;
+            //        int chartY = 34;
+            //        int chartW = W - chartX - 12;
+            //        int chartH = H - chartY - 38;
+            //        if (chartH < 10) return;
+
+            //        // Limita a largura da área de barras para não ficarem largas demais
+            //        int maxChartW = 320;
+            //        if (chartW > maxChartW)
+            //        {
+            //            int offset = (chartW - maxChartW) / 2;
+            //            chartX += offset;
+            //            chartW = maxChartW;
+            //        }
+
+            //        int barW = chartW / barVals.Length;
+            //        int gap = Math.Max(4, barW / 5);
+
+            //        using var fAxis = new Font("Segoe UI", 8f);
+            //        using var penGrid = new Pen(Color.FromArgb(225, 228, 235), 1);
+
+            //        for (int i = 0; i <= 4; i++)
+            //        {
+            //            int yLine = chartY + chartH - (int)(chartH * i / 4.0);
+            //            int labelVal = (int)Math.Round(maxVal * i / 4.0);
+            //            g.DrawLine(penGrid, chartX, yLine, chartX + chartW, yLine);
+            //            var sz = g.MeasureString(labelVal.ToString(), fAxis);
+            //            g.DrawString(labelVal.ToString(), fAxis,
+            //                new SolidBrush(Color.FromArgb(150, 155, 165)),
+            //                chartX - sz.Width - 2, yLine - sz.Height / 2);
+            //        }
+
+            //        for (int i = 0; i < barVals.Length; i++)
+            //        {
+            //            int barH = maxVal == 0 ? 0 : (int)((double)barVals[i] / maxVal * chartH);
+            //            int bx = chartX + i * barW + gap;
+            //            int bw = barW - gap * 2;
+            //            int by = chartY + chartH - barH;
+
+            //            using var br = new SolidBrush(barCores[i]);
+            //            if (barH > 4)
+            //            {
+            //                int r = Math.Min(5, bw / 3);
+            //                var path = new GraphicsPath();
+            //                path.AddArc(bx, by, r * 2, r * 2, 180, 90);
+            //                path.AddArc(bx + bw - r * 2, by, r * 2, r * 2, 270, 90);
+            //                path.AddLine(bx + bw, by + r, bx + bw, by + barH);
+            //                path.AddLine(bx + bw, by + barH, bx, by + barH);
+            //                path.CloseFigure();
+            //                g.FillPath(br, path);
+            //            }
+            //            else if (barH > 0)
+            //                g.FillRectangle(br, bx, by, bw, barH);
+
+            //            if (barVals[i] > 0)
+            //            {
+            //                string txt = barVals[i].ToString();
+            //                var sz = g.MeasureString(txt, fAxis);
+            //                g.DrawString(txt, fAxis, new SolidBrush(Color.FromArgb(40, 45, 60)),
+            //                    bx + (bw - sz.Width) / 2, Math.Max(chartY, by - 15));
+            //            }
+
+            //            var szL = g.MeasureString(barLabels[i], fAxis);
+            //            g.DrawString(barLabels[i], fAxis, new SolidBrush(Color.FromArgb(90, 95, 110)),
+            //                bx + (bw - szL.Width) / 2, chartY + chartH + 5);
+            //        }
+            //    };
             pnlBarras.Paint += (s, ev) =>
             {
                 var lista = obterLista();
                 int[] barVals = {
-            lista.Count(o => o.TotalAssinaturas == 0),
-            lista.Count(o => o.TotalAssinaturas == 1),
-            lista.Count(o => o.TotalAssinaturas == 2),
-            lista.Count(o => o.TotalAssinaturas == 3)
-        };
+        lista.Count(o => o.TotalAssinaturas == 0),
+        lista.Count(o => o.TotalAssinaturas == 1),
+        lista.Count(o => o.TotalAssinaturas == 2),
+        lista.Count(o => o.TotalAssinaturas == 3)
+    };
 
                 var g = ev.Graphics;
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
                 using var fTit = new Font("Segoe UI", 10, FontStyle.Bold);
-                g.DrawString("Progresso de Assinaturas", fTit, new SolidBrush(Color.FromArgb(25, 35, 70)), 8, 8);
+                using var fAxis = new Font("Segoe UI", 8f);
+
+                // 🔥 CENTRALIZA e controla o título corretamente
+                string titulo = "Progresso de Assinaturas";
+                var szTitulo = g.MeasureString(titulo, fTit);
+                int tituloX = (pnlBarras.Width - (int)szTitulo.Width) / 2;
+                int tituloY = 8;
+
+                g.DrawString(titulo, fTit, new SolidBrush(Color.FromArgb(25, 35, 70)), tituloX, tituloY);
+
+                // 🔥 Espaçamento dinâmico baseado no título
+                int espacoAbaixoTitulo = (int)szTitulo.Height + 10;
 
                 int W = pnlBarras.Width;
                 int H = pnlBarras.Height;
                 int maxVal = Math.Max(1, barVals.Max());
+
                 int chartX = 32;
-                int chartY = 34;
+                int chartY = tituloY + espacoAbaixoTitulo; // 🔥 agora depende do título
                 int chartW = W - chartX - 12;
                 int chartH = H - chartY - 38;
+
                 if (chartH < 10) return;
 
-                // Limita a largura da área de barras para não ficarem largas demais
                 int maxChartW = 320;
                 if (chartW > maxChartW)
                 {
@@ -1057,53 +951,57 @@ namespace Gerenciador_de_Ordens_de_servico
                 int barW = chartW / barVals.Length;
                 int gap = Math.Max(4, barW / 5);
 
-                using var fAxis = new Font("Segoe UI", 8f);
                 using var penGrid = new Pen(Color.FromArgb(225, 228, 235), 1);
 
                 for (int i = 0; i <= 4; i++)
                 {
                     int yLine = chartY + chartH - (int)(chartH * i / 4.0);
                     int labelVal = (int)Math.Round(maxVal * i / 4.0);
+
                     g.DrawLine(penGrid, chartX, yLine, chartX + chartW, yLine);
+
                     var sz = g.MeasureString(labelVal.ToString(), fAxis);
                     g.DrawString(labelVal.ToString(), fAxis,
                         new SolidBrush(Color.FromArgb(150, 155, 165)),
                         chartX - sz.Width - 2, yLine - sz.Height / 2);
                 }
 
+                var barLabels = new[] { "Nenhuma", "1 ass.", "2 ass.", "Todas" };
+                var barCores = new[]
+                {
+        Color.FromArgb(210,60,60),
+        Color.FromArgb(210,130,40),
+        Color.FromArgb(255,195,60),
+        Color.FromArgb(40,170,90)
+    };
+
                 for (int i = 0; i < barVals.Length; i++)
                 {
-                    int barH = maxVal == 0 ? 0 : (int)((double)barVals[i] / maxVal * chartH);
+                    int barH = (int)((double)barVals[i] / maxVal * chartH);
+
                     int bx = chartX + i * barW + gap;
                     int bw = barW - gap * 2;
                     int by = chartY + chartH - barH;
 
                     using var br = new SolidBrush(barCores[i]);
-                    if (barH > 4)
-                    {
-                        int r = Math.Min(5, bw / 3);
-                        var path = new GraphicsPath();
-                        path.AddArc(bx, by, r * 2, r * 2, 180, 90);
-                        path.AddArc(bx + bw - r * 2, by, r * 2, r * 2, 270, 90);
-                        path.AddLine(bx + bw, by + r, bx + bw, by + barH);
-                        path.AddLine(bx + bw, by + barH, bx, by + barH);
-                        path.CloseFigure();
-                        g.FillPath(br, path);
-                    }
-                    else if (barH > 0)
-                        g.FillRectangle(br, bx, by, bw, barH);
+                    g.FillRectangle(br, bx, by, bw, barH);
 
                     if (barVals[i] > 0)
                     {
                         string txt = barVals[i].ToString();
                         var sz = g.MeasureString(txt, fAxis);
-                        g.DrawString(txt, fAxis, new SolidBrush(Color.FromArgb(40, 45, 60)),
-                            bx + (bw - sz.Width) / 2, Math.Max(chartY, by - 15));
+
+                        g.DrawString(txt, fAxis,
+                            new SolidBrush(Color.FromArgb(40, 45, 60)),
+                            bx + (bw - sz.Width) / 2,
+                            by - 15);
                     }
 
                     var szL = g.MeasureString(barLabels[i], fAxis);
-                    g.DrawString(barLabels[i], fAxis, new SolidBrush(Color.FromArgb(90, 95, 110)),
-                        bx + (bw - szL.Width) / 2, chartY + chartH + 5);
+                    g.DrawString(barLabels[i], fAxis,
+                        new SolidBrush(Color.FromArgb(90, 95, 110)),
+                        bx + (bw - szL.Width) / 2,
+                        chartY + chartH + 5);
                 }
             };
             table.Controls.Add(pnlBarras, 1, 0);

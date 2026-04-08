@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Gerenciador-de-Ordens-de_servico")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ff8f6987a2cb387c0e662374dda1f817dafa2be2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1f38f9f1bfc78fe7356cd5a8517ad680cbe489c6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Gerenciador-de-Ordens-de_servico")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Gerenciador-de-Ordens-de_servico")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

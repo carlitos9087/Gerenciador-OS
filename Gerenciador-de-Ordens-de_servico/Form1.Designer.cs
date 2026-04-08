@@ -43,9 +43,11 @@ namespace Gerenciador_de_Ordens_de_servico
             label5 = new Label();
             textBox2 = new TextBox();
             label7 = new Label();
+            pictureBox2 = new PictureBox();
             panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             panel2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
             SuspendLayout();
             // 
             // panel1
@@ -117,7 +119,7 @@ namespace Gerenciador_de_Ordens_de_servico
             textBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             textBox1.Location = new Point(27, 63);
             textBox1.Name = "textBox1";
-            textBox1.Size = new Size(335, 23);
+            textBox1.Size = new Size(295, 23);
             textBox1.TabIndex = 2;
             // 
             // button1
@@ -127,7 +129,7 @@ namespace Gerenciador_de_Ordens_de_servico
             button1.ForeColor = Color.Transparent;
             button1.Location = new Point(105, 257);
             button1.Name = "button1";
-            button1.Size = new Size(187, 32);
+            button1.Size = new Size(191, 32);
             button1.TabIndex = 3;
             button1.Text = "Logar";
             button1.UseVisualStyleBackColor = false;
@@ -137,6 +139,7 @@ namespace Gerenciador_de_Ordens_de_servico
             // 
             panel2.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             panel2.BackColor = Color.White;
+            panel2.Controls.Add(pictureBox2);
             panel2.Controls.Add(label6);
             panel2.Controls.Add(label5);
             panel2.Controls.Add(textBox2);
@@ -148,7 +151,7 @@ namespace Gerenciador_de_Ordens_de_servico
             panel2.MaximumSize = new Size(400, 400);
             panel2.MinimumSize = new Size(300, 300);
             panel2.Name = "panel2";
-            panel2.Size = new Size(396, 331);
+            panel2.Size = new Size(400, 331);
             panel2.TabIndex = 5;
             // 
             // label6
@@ -180,8 +183,9 @@ namespace Gerenciador_de_Ordens_de_servico
             textBox2.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             textBox2.Location = new Point(27, 153);
             textBox2.Name = "textBox2";
-            textBox2.Size = new Size(335, 23);
+            textBox2.Size = new Size(295, 23);
             textBox2.TabIndex = 4;
+            textBox2.TextChanged += textBox2_TextChanged;
             // 
             // label7
             // 
@@ -195,6 +199,17 @@ namespace Gerenciador_de_Ordens_de_servico
             label7.TabIndex = 4;
             label7.Text = "GestãoOS 2026";
             label7.Click += label4_Click;
+            // 
+            // pictureBox2
+            // 
+            pictureBox2.Image = (Image)resources.GetObject("pictureBox2.Image");
+            pictureBox2.Location = new Point(328, 153);
+            pictureBox2.Name = "pictureBox2";
+            pictureBox2.Size = new Size(25, 23);
+            pictureBox2.SizeMode = PictureBoxSizeMode.StretchImage;
+            pictureBox2.TabIndex = 6;
+            pictureBox2.TabStop = false;
+            pictureBox2.Click += pictureBox2_Click;
             // 
             // Form1
             // 
@@ -213,6 +228,7 @@ namespace Gerenciador_de_Ordens_de_servico
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -322,5 +338,6 @@ namespace Gerenciador_de_Ordens_de_servico
         }
         private Label label4;
         private PictureBox pictureBox1;
+        private PictureBox pictureBox2;
     }
 }

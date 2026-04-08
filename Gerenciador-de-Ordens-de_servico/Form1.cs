@@ -230,5 +230,31 @@ namespace Gerenciador_de_Ordens_de_servico
             path.CloseFigure();
             return path;
         }
+
+        private void pictureBox2_Click(object sender, EventArgs e)
+        {
+            // Verifica se a senha está oculta (usando o caractere de sistema)
+            if (textBox2.UseSystemPasswordChar)
+            {
+                // MOSTRAR SENHA
+                textBox2.UseSystemPasswordChar = false;
+
+                // Carrega a imagem "view" (olho aberto)
+                pictureBox2.Image = Image.FromFile(@"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\view.png");
+            }
+            else
+            {
+                // OCULTAR SENHA
+                textBox2.UseSystemPasswordChar = true;
+
+                // Carrega a imagem "hide" (olho fechado)
+                pictureBox2.Image = Image.FromFile(@"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\hide.png");
+            }
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
