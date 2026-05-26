@@ -1,0 +1,8 @@
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\Gerenciador-de-Ordens-de_servico.exe
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\hide.png
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\view.png
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\Gerenciador-de-Ordens-de_servico.dll
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\Gerenciador-de-Ordens-de_servico.deps.json
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\Gerenciador-de-Ordens-de_servico.runtimeconfig.json
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\Gerenciador-de-Ordens-de_servico.pdb
+C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\bin\Release\net8.0-windows\publish\System.Windows.Forms.DataVisualization.dll

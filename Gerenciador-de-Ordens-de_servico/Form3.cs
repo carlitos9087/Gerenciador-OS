@@ -28,7 +28,11 @@ namespace Gerenciador_de_Ordens_de_servico
 
         // Usa o HttpClient compartilhado com token JWT já configurado
         // O token foi salvo em ApiConfig.SalvarToken() durante o login no Form1
-        private const string URL_BASE = "https://localhost:7188";
+        private const string URL_BASE = "https://triumphant-clarity-production-264b.up.railway.app";
+
+
+
+
 
         // Usuário logado — recebido do Form1 após login
         private readonly UsuarioResponse _usuarioLogado;
@@ -160,9 +164,55 @@ namespace Gerenciador_de_Ordens_de_servico
                 btnGerenciarOscs.Click += async (s, e) => { await MostrarGerenciarOscs(); DestaqueBotao(btnGerenciarOscs); };
             else
                 DesabilitarBotao(btnGerenciarOscs);
+           
+            
+            // ── Botão Versão Web — acessível para todos os perfis ──────────────
+            EstilizarBotaoWeb(btnAbrirWeb, "🌐  Versão Web");
+            btnAbrirWeb.Click += (s, e) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "https://gerenciador-de-os-web.vercel.app/index.html",
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Não foi possível abrir o navegador:\n{ex.Message}",
+                        "Erro", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
         }
 
         // Aplica visual bloqueado e cursor de "não permitido" — botão visível mas sem função
+        private void EstilizarBotaoWeb(Button btn, string texto)
+        {
+            btn.Text = texto;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(109, 40, 217);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(91, 33, 182);
+            btn.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            btn.ForeColor = Color.White;
+            btn.BackColor = Color.FromArgb(124, 58, 237);   // roxo vibrante
+            btn.TextAlign = ContentAlignment.MiddleCenter;
+            btn.Cursor = Cursors.Hand;
+
+            // Separador visual acima do botão — linha horizontal fina
+            btn.Paint += (s, ev) =>
+            {
+                using var pen = new System.Drawing.Pen(Color.FromArgb(160, 100, 255), 1);
+                ev.Graphics.DrawLine(pen, 0, 0, btn.Width, 0);
+            };
+
+            // Efeito de destaque ao passar o mouse
+            btn.MouseEnter += (s, e) =>
+                btn.Font = new Font("Segoe UI", 10, FontStyle.Bold | FontStyle.Underline);
+            btn.MouseLeave += (s, e) =>
+                btn.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+        }
         private void DesabilitarBotao(Button btn)
         {
             btn.BackColor = corBotaoInativo;

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using System.Drawing.Drawing2D;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
 
 namespace Gerenciador_de_Ordens_de_servico
 {
@@ -12,7 +14,7 @@ namespace Gerenciador_de_Ordens_de_servico
     {
         // Usa o HttpClient compartilhado — mesmo que Form3
         // (O /auth/login não exige token, mas usar o mesmo cliente é mais limpo)
-        private const string URL_BASE = "https://localhost:7188";
+        private const string URL_BASE = "https://triumphant-clarity-production-264b.up.railway.app";
 
         public Form1()
         {
@@ -201,43 +203,26 @@ namespace Gerenciador_de_Ordens_de_servico
             return path;
         }
 
+
+
         private void pictureBox2_Click(object sender, EventArgs e)
         {
-            string pasta = @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\";
+            string pasta = Application.StartupPath;
 
             if (textBox2.PasswordChar == '*')
             {
                 textBox2.PasswordChar = '\0';
-                pictureBox2.Image = Image.FromFile(pasta + "view.png");
+                pictureBox2.Image = Image.FromFile(Path.Combine(pasta, "view.png"));
             }
             else
             {
                 textBox2.PasswordChar = '*';
-                pictureBox2.Image = Image.FromFile(pasta + "hide.png");
+                pictureBox2.Image = Image.FromFile(Path.Combine(pasta, "hide.png"));
             }
         }
 
-        //private void pictureBox2_Click(object sender, EventArgs e)
-        //{
-        //    // Caminho das imagens relativo à pasta onde o .exe está rodando
-        //    string pathView = Application.StartupPath + @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\view.png";
-        //    string pathHide = Application.StartupPath + @"C:\Users\carlos.egalves\source\repos\Gerenciador-de-Ordens-de_servico\Gerenciador-de-Ordens-de_servico\hide.png";
 
-        //    if (textBox2.PasswordChar == '*')
-        //    {
-        //        // MOSTRAR SENHA
-        //        textBox2.PasswordChar = '\0'; // '\0' limpa a máscara e mostra o texto
-        //        if (System.IO.File.Exists(pathView))
-        //            pictureBox2.Image = Image.FromFile(pathView);
-        //    }
-        //    else
-        //    {
-        //        // OCULTAR SENHA
-        //        textBox2.PasswordChar = '*';
-        //        if (System.IO.File.Exists(pathHide))
-        //            pictureBox2.Image = Image.FromFile(pathHide);
-        //    }
-        //}
+
 
         private void textBox2_TextChanged(object sender, EventArgs e)
         {

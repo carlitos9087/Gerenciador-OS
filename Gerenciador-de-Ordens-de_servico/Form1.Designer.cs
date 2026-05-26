@@ -142,7 +142,6 @@ namespace Gerenciador_de_Ordens_de_servico
             // 
             panel2.Anchor = AnchorStyles.None;
             panel2.AutoSize = true;
-            panel2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             panel2.BackColor = Color.White;
             panel2.Controls.Add(pictureBox2);
             panel2.Controls.Add(label6);

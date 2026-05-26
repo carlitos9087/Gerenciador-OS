@@ -20,6 +20,7 @@
             this.btnAssinar = new System.Windows.Forms.Button();
             this.btnAdmin = new System.Windows.Forms.Button();
             this.btnGerenciarOscs = new System.Windows.Forms.Button();
+            this.btnAbrirWeb = new System.Windows.Forms.Button();
 
             this.SuspendLayout();
             this.panelCabecalho.SuspendLayout();
@@ -38,6 +39,7 @@
             this.panelLateral.Controls.Add(this.btnAssinar);
             this.panelLateral.Controls.Add(this.btnAdmin);
             this.panelLateral.Controls.Add(this.btnGerenciarOscs);
+            this.panelLateral.Controls.Add(this.btnAbrirWeb);
             this.panelLateral.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelLateral.Name = "panelLateral";
             this.panelLateral.Size = new System.Drawing.Size(200, 590);
@@ -78,6 +80,12 @@
             this.btnGerenciarOscs.Size = new System.Drawing.Size(176, 44);
             this.btnGerenciarOscs.TabIndex = 4;
 
+            this.btnAbrirWeb.Location = new System.Drawing.Point(8, 500);
+            this.btnAbrirWeb.Name = "btnAbrirWeb";
+            this.btnAbrirWeb.Size = new System.Drawing.Size(184, 52);
+            this.btnAbrirWeb.TabIndex = 5;
+            this.btnAbrirWeb.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
             // ── panelConteudo ───────────────────────────────
             this.panelConteudo.BackColor = System.Drawing.Color.White;
             this.panelConteudo.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -113,5 +121,6 @@
         private System.Windows.Forms.Button btnAssinar;
         private System.Windows.Forms.Button btnAdmin;
         private System.Windows.Forms.Button btnGerenciarOscs;
+        private System.Windows.Forms.Button btnAbrirWeb;
     }
 }

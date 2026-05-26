@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>GerenciadorOS</id>
+    <version>1.0.0</version>
+    <authors>Carlos Eduardo</authors>
+    <description>Gerenciador de Ordens de Serviço</description>
+  </metadata>
+  <files>
+    <file src="bin\Release\net8.0-windows\publish\**\*.*" target="lib\net45" />
+  </files>
+</package>
