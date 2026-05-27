@@ -14,7 +14,7 @@ namespace Gerenciador_de_Ordens_de_servico
     {
         // Usa o HttpClient compartilhado — mesmo que Form3
         // (O /auth/login não exige token, mas usar o mesmo cliente é mais limpo)
-        private const string URL_BASE = "https://triumphant-clarity-production-264b.up.railway.app";
+        private const string URL_BASE = "http://200.234.218.87";
 
         public Form1()
         {

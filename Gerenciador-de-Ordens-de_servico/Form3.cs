@@ -28,7 +28,7 @@ namespace Gerenciador_de_Ordens_de_servico
 
         // Usa o HttpClient compartilhado com token JWT já configurado
         // O token foi salvo em ApiConfig.SalvarToken() durante o login no Form1
-        private const string URL_BASE = "https://triumphant-clarity-production-264b.up.railway.app";
+        private const string URL_BASE = "http://200.234.218.87";
 
 
 
