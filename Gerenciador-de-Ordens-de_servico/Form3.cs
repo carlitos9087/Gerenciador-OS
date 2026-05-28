@@ -175,7 +175,7 @@ namespace Gerenciador_de_Ordens_de_servico
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        FileName = "https://gerenciador-de-os-web.vercel.app/index.html",
+                        FileName = "https://gerenciador-os-react.vercel.app/",
                         UseShellExecute = true
                     });
                 }
