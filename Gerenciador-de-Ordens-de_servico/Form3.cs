@@ -29,7 +29,7 @@ namespace Gerenciador_de_Ordens_de_servico
         // Usa o HttpClient compartilhado com token JWT já configurado
         // O token foi salvo em ApiConfig.SalvarToken() durante o login no Form1
         //private const string URL_BASE = "http://200.234.218.87";
-        private const string URL_BASE = "https://vps67218.publicclo   ud.com.br  ";
+        private const string URL_BASE = "https://vps67218.publiccloud.com.br";
 
 
 
