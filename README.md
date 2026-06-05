@@ -90,37 +90,9 @@ O projeto aplica a filosofia **Kaizen** de melhoria contínua: cada iteração e
 
 ---
 
-## 🚀 Instalação Rápida (Recomendado)
 
-> 💡 **Não precisa de Visual Studio, .NET SDK ou qualquer configuração técnica.** O OS vem com um instalador nativo para Windows — é só baixar e rodar.
 
-<div align="center">
-
-### ⬇️ [Clique aqui para baixar o instalador — `Setup_GerenciadorOS_v1.0.exe`](docs/Setup_GerenciadorOS_v1.0.exe)
-
-![Windows](https://img.shields.io/badge/Windows%2010%2F11-Compatível-0078D6?style=flat-square&logo=windows)
-![Versão](https://img.shields.io/badge/Versão-1.0.0-brightgreen?style=flat-square)
-![Instalador](https://img.shields.io/badge/Instalador-Inno%20Setup-cc2222?style=flat-square)
-
-</div>
-
-### Passo a Passo
-
-**1.** Clique no botão de download acima ou acesse a página de [**Releases**](../../releases/latest).
-
-**2.** Baixe o arquivo **`Setup_GerenciadorOS_v1.0.exe`**.
-
-**3.** Execute o instalador — o assistente guiará você por toda a instalação.
-
-**4.** Após a instalação, o OS estará disponível no **Menu Iniciar** e na **Área de Trabalho**.
-
-**5.** Na primeira execução, configure o **endpoint da API** nas configurações do sistema.
-
-> ⚠️ **Requisito mínimo:** Windows 10 ou superior (x64). O instalador foi gerado com **Inno Setup** e não requer nenhuma dependência adicional.
-
----
-
-## 🛠️ Como Compilar e Executar (Para Desenvolvedores)
+## 🛠️ Como Compilar e Executar
 
 ### Pré-requisitos
 
